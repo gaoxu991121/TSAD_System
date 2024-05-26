@@ -1,4 +1,4 @@
-Logs/
-Data/
-Plots/
+Logs/*
+Data/*
+Plots/*
 .idea/
