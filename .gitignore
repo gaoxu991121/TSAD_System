@@ -1,4 +1,12 @@
 Logs/*
-Data/*
+Data/NASA/train/
+Data/NASA/test/
+Data/NASA/label/
+Data/SMD/train/
+Data/SMD/test/
+Data/SMD/label/
+Data/UCR/train/
+Data/UCR/test/
+Data/UCR/label/
 Plots/*
 .idea/
