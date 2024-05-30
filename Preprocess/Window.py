@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def convertToSlidngWindow(data,window_size):
+def convertToWindow(data, window_size):
 
     windows = []
 
@@ -16,4 +16,17 @@ def convertToSlidngWindow(data,window_size):
     return np.stack(windows)
 
 
-
+def convertToSlidingWindow(data, window_size, stride=1, start_discont=np.array([])):
+    """
+    :param start_discont: the start points of each sub-part in case the data is just multiple parts joined together
+    :param data: dim 0 is time, dim 1 is channels
+    :param window_size: size of window used to create subsequences from the data
+    :param stride: number of time points the window will move between two subsequences
+    :return:
+    """
+    excluded_starts = []
+    [excluded_starts.extend(range((start - window_size + 1), start)) for start in start_discont if start > window_size]
+    seq_starts = np.delete(np.arange(0, data.shape[0] - window_size + 1, stride), excluded_starts)
+    data = data
+    x_seqs = np.array([data[i:i + window_size] for i in seq_starts])
+    return x_seqs

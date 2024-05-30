@@ -1,9 +1,9 @@
 {
   "NASA": {
     "M-1": {
-      "hidden_size": 28,
+      "hidden_size": 80,
       "latent_size": 14,
-      "sliding_window": 60,
+      "window_size": 250,
       "threshold": 0.5
     }
   }
