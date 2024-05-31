@@ -4,7 +4,8 @@
       "hidden_size": 80,
       "latent_size": 14,
       "window_size": 250,
-      "threshold": 0.5
+      "threshold": 0.5,
+      "input_size": 55
     }
   }
 }

@@ -31,27 +31,42 @@ class LSTMAE(nn.Module):
         self.num_layers = self.config["num_layers"]
 
         self.output_size = self.config["input_size"]
-
-        self.encoder = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers)
-        self.decoder = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers)
+        self.window_size = self.config["window_size"]
+        self.encoder = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers,batch_first=True)
+        self.decoder = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers,batch_first=True)
 
 
         self.fc = nn.Linear(self.hidden_size, self.output_size)
 
-        self.x_hat = None
+
 
 
 
 
     def forward(self,input):
-        if self.x_hat == None:
-            self.x_hat = torch.zeros_like(input)
+
 
         out, (hidden,cell) = self.encoder(input)
-        out, (hidden,cell) = self.decoder(self.x_hat,(hidden,cell))
-        x_hat = self.fc(hidden)
-        self.x_hat = x_hat.clone().detach()
-        return x_hat
+
+        decoder_hidden,decoder_cell = (hidden,cell)
+
+        data_list = []
+
+        for i in range(self.window_size):
+
+            x_hat = self.fc(decoder_hidden.permute((1, 0, 2))[:, -1, :])
+            #print("x_hat shape:",x_hat.shape) [ batch_size,features ]
+
+            x_hat = x_hat.unsqueeze(dim=1)
+            data_list.append(x_hat)
+            if i < self.window_size - 1 :
+                out, (decoder_hidden, decoder_cell) = self.decoder(x_hat, (decoder_hidden, decoder_cell))
+
+
+
+        data = torch.concatenate(data_list,dim=1)
+        
+        return data
 
     def processData(self,data_train,data_test):
         """
@@ -142,9 +157,11 @@ class LSTMAE(nn.Module):
                 item = d[0]
 
                 y = self.forward(item)
-                loss = F.mse_loss(y, item, reduction='sum')
+
+                loss = F.mse_loss(y, item, reduction='none')
 
                 score.append(loss.sum(dim=-1).detach())
+                print(score)
 
             score = torch.tensor(score).numpy()
 

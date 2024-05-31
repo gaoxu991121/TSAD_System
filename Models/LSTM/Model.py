@@ -26,28 +26,53 @@ class LSTM(nn.Module):
         self.config = config
 
         self.epoch = self.config["epoch"]
-        self.input_size = self.config["window_size"] - 1
+        self.input_size = 1
         self.hidden_size = self.config["hidden_size"]
         self.num_layers = self.config["num_layers"]
         self.drop_out_rate = self.config["drop_out_rate"]
         self.output_size = self.config["input_size"]
+        self.window_size = self.config["window_size"]
 
-        self.lstm = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers)
+        self.lstm = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers,batch_first=True)
 
         self.dropout = nn.Dropout(self.drop_out_rate)
-        self.fc = nn.Linear(self.hidden_size, self.output_size)  # 1 是输出维度
+        self.fc = nn.Linear(self.hidden_size, 1)  # 1 是输出维度
 
 
 
 
     def forward(self,input):
+        '''
+        本处的实现是多个维度共享参数。通过每个batch展开为1维来实现。
 
-        out, _ = self.lstm(input)
-        out = self.dropout(out)
+        '''
+        shape = input.shape
+        # input = input.reshape(-1, self.window_size-1, 1)
+        # #hidden shape: torch.Size([num_layer, batch_size*features, hidden_size])
+        # #out shape:[batch_size*features, sequence_length, hidden_dim]
+        # out,(hidden,cell) = self.lstm(input)
+        #
+        # hidden = hidden[-1,:,:].unsqueeze(dim = 1)
+        #
+        # out = self.dropout(hidden)
+        #
+        # #out shape:[batch_size*features, hidden_size]
+        #
+        # out = self.fc(out).reshape([shape[0],shape[-1]])  #取 LSTM 输出的最后一个时间步作为预测结果
 
-        out = self.fc(out)  #取 LSTM 输出的最后一个时间步作为预测结果
+        data_list = []
 
-        return out[:,:,-1]
+        for i in range(shape[-1]):
+            data = input[:,:,i].unsqueeze(dim=-1)
+            out, (hidden, cell) = self.lstm(data)
+            out = self.dropout(hidden).permute((1,0,2))[:,-1,:]
+            out = self.fc(out)
+
+            data_list.append(out.squeeze())
+
+        out = torch.stack(data_list,dim=1)
+
+        return out
 
     def processData(self,data_train,data_test):
         """
@@ -90,13 +115,11 @@ class LSTM(nn.Module):
                 optimizer.zero_grad()
                 item = d[0]
 
-                item = torch.permute(item, (0, 2, 1))
 
-                y = self.forward(item[:,:,:-1])
+                y = self.forward(item[:,:-1,:])
 
-                loss = F.mse_loss(y, item[:,:,-1], reduction='sum')
-
-
+                loss = F.mse_loss(y, item[:,-1,:], reduction='sum')
+                print("loss:",loss)
 
                 l1s.append(torch.mean(loss).item())
 
@@ -136,14 +159,13 @@ class LSTM(nn.Module):
             for index, d in enumerate(test_dataloader):
                 item = d[0]
 
-                item = torch.permute(item, (0, 2, 1))
 
                 y = self.forward(item[:, :, :-1])
 
-                loss = F.mse_loss(y, item[:, :, -1], reduction='none')
+                loss = F.mse_loss(y, item[:,-1,:], reduction='sum')
 
 
-                score.append(loss.sum(dim=-1).detach())
+                score.append(loss.detach())
 
             score = torch.concatenate(score,dim=0).numpy()
 
