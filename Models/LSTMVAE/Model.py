@@ -28,10 +28,10 @@ class LSTMEncoder(nn.Module):
 
     def forward(self,x):
         #hidden/cell  shape:[num_layers,batch_size,hidden_size]
-        print("x shape:",x.shape)
+
         # input shape: [batch_size,window_size,features]
         lstm_output,(hidden,cell) = self.lstm(x)
-        print("hidden shape:",hidden.shape)
+
         hidden = hidden.permute(1,0,2)
 
         z_mean = self.z_mean_layer(hidden)

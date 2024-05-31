@@ -18,7 +18,8 @@ from Utils.ProtocolUtil import pa
 
 class LSTMV2(nn.Module):
     """
-    《Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding》修改版本，原始版本是多个维度共享，此处改为不共享，直接预测下一个时间点的多维数据
+    《Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding》
+    修改版本，原始版本是多个维度共享，此处改为不共享，直接预测下一个时间点的多维数据
 
     """
     def __init__(self,config):

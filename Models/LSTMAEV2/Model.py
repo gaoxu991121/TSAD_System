@@ -19,7 +19,7 @@ from Utils.ProtocolUtil import pa
 class LSTMAEV2(nn.Module):
     """
     《LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection》
-
+    修改版，仅预测最后一个时间步
     """
     def __init__(self,config):
         super(LSTMAEV2,self).__init__()
