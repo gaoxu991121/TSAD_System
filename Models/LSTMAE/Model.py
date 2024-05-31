@@ -154,7 +154,7 @@ class LSTMAE(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
                 y = self.forward(item)
 
