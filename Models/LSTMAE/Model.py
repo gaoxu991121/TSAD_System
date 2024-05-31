@@ -114,8 +114,8 @@ class LSTMAE(nn.Module):
 
                 y = self.forward(item)
 
-                loss = F.mse_loss(y, item, reduction='sum')
-
+                loss = F.mse_loss(y, item, reduction='none')
+                loss = loss.sum(dim=-1)
 
 
                 l1s.append(torch.mean(loss).item())
@@ -161,7 +161,7 @@ class LSTMAE(nn.Module):
                 loss = F.mse_loss(y, item, reduction='none')
 
                 score.append(loss.sum(dim=-1).sum(dim=-1).detach().cpu())
-                print(loss.sum(dim=-1).sum(dim=-1).shape)
+
 
             score = torch.concatenate(score,dim=0).numpy()
 
