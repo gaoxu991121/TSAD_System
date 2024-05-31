@@ -16,72 +16,38 @@ from torch.nn import functional as F
 from Utils.ProtocolUtil import pa
 
 
-class LSTMEncoder(nn.Module):
-    def __init__(self,input_size,hidden_size,latent_size):
-        super(LSTMEncoder, self).__init__()
-        self.latent_size = latent_size
-        self.hidden_size = hidden_size
-        self.lstm = nn.LSTM(input_size=input_size,hidden_size=hidden_size,num_layers=1,batch_first=True)
-        self.z_mean_layer = nn.Linear(hidden_size,latent_size)
-        self.z_log_var_layer = nn.Linear(hidden_size,latent_size)
+class LSTMV2(nn.Module):
+    """
+    《Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding》修改版本，原始版本是多个维度共享，此处改为不共享，直接预测下一个时间点的多维数据
 
-
-    def forward(self,x):
-        #hidden/cell  shape:[num_layers,batch_size,hidden_size]
-        print("x shape:",x.shape)
-        # input shape: [batch_size,window_size,features]
-        lstm_output,(hidden,cell) = self.lstm(x)
-        print("hidden shape:",hidden.shape)
-        hidden = hidden.permute(1,0,2)
-
-        z_mean = self.z_mean_layer(hidden)
-        z_log_var = self.z_log_var_layer(hidden)
-        epsilon = torch.randn_like(z_log_var)
-        z = z_mean + z_log_var.exp() * epsilon
-
-        #z shape: [batch,1 , latent_size]
-        return z,z_mean,z_log_var
-
-class LSTMDecoder(nn.Module):
-    def __init__(self,input_size,hidden_size,latent_size):
-        super(LSTMDecoder,self).__init__()
-        self.lstm = nn.LSTM(input_size=latent_size,hidden_size=hidden_size,num_layers=1,batch_first=True)
-        self.x_mean_layer = nn.Linear(hidden_size, input_size)
-        self.x_log_var_layer = nn.Linear(hidden_size, input_size)
-
-    def forward(self,z):
-        #cell shape: torch.Size([1, 128, 28])
-        #hidden shape: torch.Size([1, 128, 28])
-        output1,(hidden,cell) = self.lstm(z)
-
-        hidden = hidden.permute(1, 0, 2)
-        x_mean = self.x_mean_layer(hidden)
-        x_log_var = self.x_log_var_layer(hidden)
-        return x_mean,x_log_var
-
-class LSTMVAE(nn.Module):
+    """
     def __init__(self,config):
-        '''
-        《A Multimodal Anomaly Detector for Robot-Assisted Feeding Using an LSTM-Based Variational Autoencoder》 实现
-        '''
-        super(LSTMVAE,self).__init__()
+        super(LSTMV2,self).__init__()
         self.config = config
 
         self.epoch = self.config["epoch"]
         self.input_size = self.config["input_size"]
         self.hidden_size = self.config["hidden_size"]
-        self.latent_size = self.config["latent_size"]
+        self.num_layers = self.config["num_layers"]
+        self.drop_out_rate = self.config["drop_out_rate"]
+        self.output_size = self.config["input_size"]
 
-        self.encoder = LSTMEncoder(self.input_size,self.hidden_size,self.latent_size)
-        self.decoder = LSTMDecoder(self.input_size,self.hidden_size,self.latent_size)
+        self.lstm = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers,batch_first=True)
+
+        self.dropout = nn.Dropout(self.drop_out_rate)
+        self.fc = nn.Linear(self.hidden_size, self.output_size)  # 1 是输出维度
+
+
 
 
     def forward(self,input):
 
-        z,z_mean,z_log_var = self.encoder(input)
-        x_mean,x_std = self.decoder(z)
-
-        return (z_mean,z_log_var),(x_mean,x_std)
+        out, _ = self.lstm(input)
+        out = self.dropout(out)
+        #out shape:[batch_size,window_size -1 , hidden_size]
+        out = self.fc(out)
+        #out shape:[batch_size,window_size -1 , output_size]
+        return out[:,-1,:]
 
     def processData(self,data_train,data_test):
         """
@@ -124,13 +90,12 @@ class LSTMVAE(nn.Module):
                 optimizer.zero_grad()
                 item = d[0]
 
-                (z_mean, z_log_var), (x_mean, x_std) = self.forward(item)
 
-                reconstruction_loss = F.mse_loss(x_mean.squeeze(), item[:, -1, :].squeeze(), reduction='sum')
+                y = self.forward(item[:,:-1,:])
 
-                # KL散度
-                kl_loss = -0.5 * torch.sum(1 + z_log_var - z_mean.pow(2) - z_log_var.exp())
-                loss = reconstruction_loss + kl_loss
+                loss = F.mse_loss(y, item[:,-1,:], reduction='sum')
+
+
 
                 l1s.append(torch.mean(loss).item())
 
@@ -170,13 +135,14 @@ class LSTMVAE(nn.Module):
             for index, d in enumerate(test_dataloader):
                 item = d[0]
 
-                (z_mean, z_log_var), (x_mean, x_std) = self.forward(item)
-                loss = F.mse_loss(x_mean.squeeze(), item[:, -1, :].squeeze(), reduction="none")
 
-                if item.shape[-1] > 1:
-                    loss = loss.sum(dim=-1)
 
-                score.append(loss.detach())
+                y = self.forward(item[:, :-1, :])
+
+                loss = F.mse_loss(y, item[:, -1, :], reduction='none')
+
+
+                score.append(loss.sum(dim=-1).detach())
 
             score = torch.concatenate(score,dim=0).numpy()
 
