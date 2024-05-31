@@ -36,7 +36,7 @@ class LSTMV2(nn.Module):
 
         self.dropout = nn.Dropout(self.drop_out_rate)
         self.fc = nn.Linear(self.hidden_size, self.output_size)  # 1 是输出维度
-
+        self.device = self.config["device"]
 
 
 
@@ -88,7 +88,7 @@ class LSTMV2(nn.Module):
             l1s = []
             for d in train_loader:
                 optimizer.zero_grad()
-                item = d[0]
+                item = d[0].to(self.divice)
 
 
                 y = self.forward(item[:,:-1,:])
@@ -133,7 +133,7 @@ class LSTMV2(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0]
+                item = d[0].to(self.divice)
 
 
 
@@ -142,7 +142,7 @@ class LSTMV2(nn.Module):
                 loss = F.mse_loss(y, item[:, -1, :], reduction='none')
 
 
-                score.append(loss.sum(dim=-1).detach())
+                score.append(loss.sum(dim=-1).detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()
 

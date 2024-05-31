@@ -38,6 +38,8 @@ class LSTM(nn.Module):
         self.dropout = nn.Dropout(self.drop_out_rate)
         self.fc = nn.Linear(self.hidden_size, 1)  # 1 是输出维度
 
+        self.divice = self.config["device"]
+
 
 
 
@@ -113,7 +115,7 @@ class LSTM(nn.Module):
             l1s = []
             for d in train_loader:
                 optimizer.zero_grad()
-                item = d[0]
+                item = d[0].to(self.divice)
 
 
                 y = self.forward(item[:,:-1,:])
@@ -157,7 +159,7 @@ class LSTM(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0]
+                item = d[0].to(self.divice)
 
 
                 y = self.forward(item[:, :, :-1])
@@ -165,7 +167,7 @@ class LSTM(nn.Module):
                 loss = F.mse_loss(y, item[:,-1,:], reduction='sum')
 
 
-                score.append(loss.detach())
+                score.append(loss.detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()
 

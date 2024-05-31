@@ -74,7 +74,7 @@ class LSTMVAE(nn.Module):
 
         self.encoder = LSTMEncoder(self.input_size,self.hidden_size,self.latent_size)
         self.decoder = LSTMDecoder(self.input_size,self.hidden_size,self.latent_size)
-
+        self.device = self.config["device"]
 
     def forward(self,input):
 
@@ -122,7 +122,7 @@ class LSTMVAE(nn.Module):
             l1s = []
             for d in train_loader:
                 optimizer.zero_grad()
-                item = d[0]
+                item = d[0].to(self.divice)
 
                 (z_mean, z_log_var), (x_mean, x_std) = self.forward(item)
 
@@ -168,7 +168,7 @@ class LSTMVAE(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0]
+                item = d[0].to(self.divice)
 
                 (z_mean, z_log_var), (x_mean, x_std) = self.forward(item)
                 loss = F.mse_loss(x_mean.squeeze(), item[:, -1, :].squeeze(), reduction="none")
@@ -176,7 +176,7 @@ class LSTMVAE(nn.Module):
                 if item.shape[-1] > 1:
                     loss = loss.sum(dim=-1)
 
-                score.append(loss.detach())
+                score.append(loss.detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()
 

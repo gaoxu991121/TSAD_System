@@ -37,7 +37,7 @@ class LSTMAE(nn.Module):
 
 
         self.fc = nn.Linear(self.hidden_size, self.output_size)
-
+        self.device = self.config["device"]
 
 
 
@@ -65,7 +65,7 @@ class LSTMAE(nn.Module):
 
 
         data = torch.concatenate(data_list,dim=1)
-        
+
         return data
 
     def processData(self,data_train,data_test):
@@ -108,7 +108,7 @@ class LSTMAE(nn.Module):
             for d in train_loader:
                 optimizer.zero_grad()
 
-                item = d[0]
+                item = d[0].to(self.divice)
 
 
 
@@ -154,16 +154,16 @@ class LSTMAE(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0]
+                item = d[0].to(self.divice)
 
                 y = self.forward(item)
 
                 loss = F.mse_loss(y, item, reduction='none')
 
-                score.append(loss.sum(dim=-1).detach())
-                print(score)
+                score.append(loss.sum(dim=-1).sum(dim=-1).detach().cpu())
+                print(loss.sum(dim=-1).sum(dim=-1).shape)
 
-            score = torch.tensor(score).numpy()
+            score = torch.concatenate(score,dim=0).numpy()
 
             score = minMaxScaling(data = score,min_value= score.min(),max_value=score.max(),range_max=1,range_min=0)
 

@@ -16,13 +16,13 @@ from torch.nn import functional as F
 from Utils.ProtocolUtil import pa
 
 
-class LSTMAE(nn.Module):
+class LSTMAEV2(nn.Module):
     """
     《LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection》
 
     """
     def __init__(self,config):
-        super(LSTMAE,self).__init__()
+        super(LSTMAEV2,self).__init__()
         self.config = config
 
         self.epoch = self.config["epoch"]
@@ -37,7 +37,7 @@ class LSTMAE(nn.Module):
 
 
         self.fc = nn.Linear(self.hidden_size, self.output_size)
-
+        self.device = self.config["device"]
         self.x_hat = None
 
 
@@ -96,7 +96,7 @@ class LSTMAE(nn.Module):
             for d in train_loader:
                 optimizer.zero_grad()
 
-                item = d[0]
+                item = d[0].to(self.divice)
 
 
 
@@ -142,13 +142,13 @@ class LSTMAE(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0]
+                item = d[0].to(self.divice)
 
                 y = self.forward(item)
 
                 loss = F.mse_loss(y.squeeze(dim=1), item[:,-1,:], reduction='none')
 
-                score.append(loss.sum(dim=-1).detach())
+                score.append(loss.sum(dim=-1).detach().cpu())
 
             score = torch.tensor(score).numpy()
 

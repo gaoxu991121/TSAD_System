@@ -17,7 +17,7 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="LSTMAE", help='name of model')
+    parser.add_argument('--model_name', type=str, default="LSTMAEV2", help='name of model')
     parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
     parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
     parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
@@ -49,7 +49,7 @@ def getConfig(args):
         "learning_rate": args.learning_rate,
         "identifier": identifier,
         "batch_size": args.batch_size,
-
+        "device" :torch.device("cuda" if torch.cuda.is_available() else "cpu")
     }
 
     model_config = readJson(path = config["base_path"] + "/Models/"+config["model"]+"/Config.json")
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     data_train,data_test,label = readData(dataset_path = config["base_path"] + "./Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
 
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = config["device"]
 
     #get model
     model = getModel(config=config).to(device)
