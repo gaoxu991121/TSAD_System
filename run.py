@@ -86,10 +86,6 @@ if __name__ == '__main__':
     config = getConfig(args=args)
     print(config)
 
-
-    t = np.random.random((9,8))
-
-    time.sleep(5)
     #get data
     data_train,data_test,label = readData(dataset_path = config["base_path"] + "/Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
 

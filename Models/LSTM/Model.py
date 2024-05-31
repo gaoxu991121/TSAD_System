@@ -121,7 +121,7 @@ class LSTM(nn.Module):
                 y = self.forward(item[:,:-1,:])
 
                 loss = F.mse_loss(y, item[:,-1,:], reduction='sum')
-                print("loss:",loss)
+          
 
                 l1s.append(torch.mean(loss).item())
 
