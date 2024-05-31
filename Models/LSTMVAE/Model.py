@@ -122,7 +122,7 @@ class LSTMVAE(nn.Module):
             l1s = []
             for d in train_loader:
                 optimizer.zero_grad()
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
                 (z_mean, z_log_var), (x_mean, x_std) = self.forward(item)
 
@@ -168,7 +168,7 @@ class LSTMVAE(nn.Module):
         score = []
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
                 (z_mean, z_log_var), (x_mean, x_std) = self.forward(item)
                 loss = F.mse_loss(x_mean.squeeze(), item[:, -1, :].squeeze(), reduction="none")

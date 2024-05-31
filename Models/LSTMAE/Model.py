@@ -108,7 +108,7 @@ class LSTMAE(nn.Module):
             for d in train_loader:
                 optimizer.zero_grad()
 
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
 
 
