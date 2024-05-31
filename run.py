@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     time.sleep(5)
     #get data
-    data_train,data_test,label = readData(dataset_path = config["base_path"] + "./Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
+    data_train,data_test,label = readData(dataset_path = config["base_path"] + "/Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
 
 
     device = config["device"]
