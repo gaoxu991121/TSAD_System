@@ -50,6 +50,7 @@ def getConfig(args):
         "identifier": identifier,
         "batch_size": args.batch_size,
         "device" :torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        "shuffle":args.shuffle
     }
 
     model_config = readJson(path = config["base_path"] + "/Models/"+config["model"]+"/Config.json")
@@ -97,7 +98,7 @@ if __name__ == '__main__':
 
 
     shuffle = config["shuffle"]
-    
+
     #preprocess data
     (train_loader, test_loader) = model.processData(data_train,data_test,shuffle)
 
