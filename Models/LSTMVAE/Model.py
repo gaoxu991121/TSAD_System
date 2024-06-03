@@ -60,7 +60,7 @@ class LSTMDecoder(nn.Module):
         x_log_var = self.x_log_var_layer(hidden)
         return x_mean,x_log_var
 
-class LSTMVAE(nn.Module):
+class LSTMVAE(BaseModel):
     def __init__(self,config):
         '''
         《A Multimodal Anomaly Detector for Robot-Assisted Feeding Using an LSTM-Based Variational Autoencoder》 实现
