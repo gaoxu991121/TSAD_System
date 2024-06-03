@@ -49,7 +49,7 @@ def getConfig(args):
         "learning_rate": args.learning_rate,
         "identifier": identifier,
         "batch_size": args.batch_size,
-        "device" :torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        "device" :torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         "shuffle":args.shuffle
     }
 
