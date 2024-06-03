@@ -3,7 +3,7 @@
     "M-1": {
       "hidden_size": 80,
       "latent_size": 14,
-      "window_size": 250,
+      "window_size": 60,
       "threshold": 0.5,
       "batch_size": 64,
       "num_layers": 2,

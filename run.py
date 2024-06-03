@@ -27,7 +27,7 @@ def parseParams():
     parser.add_argument('--epoch', type=int, default=50, help="num of training epoches")
     parser.add_argument('--learning_rate', type=float, default=0.001, help="value of learning rate")
     parser.add_argument('--batch_size', type=int, default=128, help="batch size of data")
-
+    parser.add_argument('--shuffle', type=bool, default=False, help="whether do shuffle by time window")
 
     args = parser.parse_args()
 
@@ -96,8 +96,10 @@ if __name__ == '__main__':
     model = getModel(config=config).to(device)
 
 
+    shuffle = config["shuffle"]
+    
     #preprocess data
-    (train_loader, test_loader) = model.processData(data_train,data_test)
+    (train_loader, test_loader) = model.processData(data_train,data_test,shuffle)
 
     #train model
     model.fit(train_loader=train_loader,write_log=True)

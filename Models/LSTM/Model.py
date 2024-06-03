@@ -77,7 +77,7 @@ class LSTM(BaseModel):
 
         return out
 
-    def processData(self,data_train,data_test):
+    def processData(self,data_train,data_test,shuffle = False):
         """
             对数据进行的预处理
             注意输出类型为可以直接送入训练的data_loader或张量
@@ -94,7 +94,8 @@ class LSTM(BaseModel):
         data_train = convertToWindow(data = data_train, window_size = window_size)
         data_test = convertToWindow(data = data_test, window_size = window_size)
 
-        data_train = self.shuffle(data_train)
+        if shuffle:
+            data_train = self.shuffle(data_train)
 
 
         train_dataset = TensorDataset(torch.tensor(data_train).float())
@@ -143,12 +144,6 @@ class LSTM(BaseModel):
             wirteLog(self.config["base_path"] + "/Logs/" + identifier,"train_loss",{"train_loss":l1s})
 
 
-    def getThreshold(self):
-        threshold = 0.5
-        if self.config["threshold"] != None:
-            threshold = self.config["threshold"]
-
-        return threshold
 
 
     def test(self,test_dataloader):
@@ -200,21 +195,6 @@ class LSTM(BaseModel):
         return predict_label
 
 
-    def evaluate(self,predict_label,ground_truth_label):
-        """
-            根据预测标签以及真值标签，给出评估结果。此处给出了f1，可添加其他
-            :param predict_label: 预测标签
-            :param ground_truth_label: 真值标签，不使用则不需要传
-        """
 
-
-        (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
-
-        if (tp + fn + fp) == 0:
-            f1 = 0
-        else:
-            f1 = (2 * tp) / (2 * (tp + fn + fp))
-
-        return f1
 
 
