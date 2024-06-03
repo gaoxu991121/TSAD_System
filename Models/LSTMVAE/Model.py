@@ -7,6 +7,7 @@ import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
+from Models.BaseModel import BaseModel
 from Preprocess.Normalization import minMaxScaling
 from Preprocess.Window import convertToWindow
 from Utils.EvalUtil import countResult, findSegment
@@ -16,7 +17,7 @@ from torch.nn import functional as F
 from Utils.ProtocolUtil import pa
 
 
-class LSTMEncoder(nn.Module):
+class LSTMEncoder(BaseModel):
     def __init__(self,input_size,hidden_size,latent_size):
         super(LSTMEncoder, self).__init__()
         self.latent_size = latent_size
@@ -99,6 +100,9 @@ class LSTMVAE(nn.Module):
 
         data_train = convertToWindow(data = data_train, window_size = window_size)
         data_test = convertToWindow(data = data_test, window_size = window_size)
+
+        data_train = self.shuffle(data_train)
+
 
         train_dataset = TensorDataset(torch.tensor(data_train).float())
         test_dataset = TensorDataset(torch.tensor(data_test).float())

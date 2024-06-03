@@ -7,6 +7,7 @@ import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 
+from Models.BaseModel import BaseModel
 from Preprocess.Normalization import minMaxScaling
 from Preprocess.Window import convertToWindow
 from Utils.EvalUtil import countResult, findSegment
@@ -16,7 +17,7 @@ from torch.nn import functional as F
 from Utils.ProtocolUtil import pa
 
 
-class LSTMV2(nn.Module):
+class LSTMV2(BaseModel):
     """
     《Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding》
     修改版本，原始版本是多个维度共享，此处改为不共享，直接预测下一个时间点的多维数据
@@ -66,6 +67,9 @@ class LSTMV2(nn.Module):
 
         data_train = convertToWindow(data = data_train, window_size = window_size)
         data_test = convertToWindow(data = data_test, window_size = window_size)
+
+        data_train = self.shuffle(data_train)
+
 
         train_dataset = TensorDataset(torch.tensor(data_train).float())
         test_dataset = TensorDataset(torch.tensor(data_test).float())

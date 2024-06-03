@@ -8,7 +8,7 @@
       "batch_size": 1,
       "num_layers": 1,
       "input_size": 55,
-      "epoch": 1
+      "epoch": 50
     },
     "A-6": {
       "hidden_size": 80,
