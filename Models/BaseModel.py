@@ -1,10 +1,12 @@
-
+import os
 
 import torch
 import torch.nn as nn
-
+import numpy as np
 from Utils.EvalUtil import countResult
 from Utils.LogUtil import wirteLog
+from Utils.EvalUtil import countResult, findSegment
+from Utils.ProtocolUtil import pa, apa
 
 
 class BaseModel(nn.Module):
@@ -83,3 +85,73 @@ class BaseModel(nn.Module):
             ema[:, t, :] = ema[:, t, :] / correction_factor
 
         return ema
+
+
+    def save(self,name = "checkpoint.pth"):
+        identifier = self.config["identifier"]
+        path = self.config["base_path"] + "/CheckPoints/" + identifier
+        # 判断文件夹是否存在
+        if not os.path.exists(path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(path)
+
+        path = path  + '/' + name
+        torch.save(self.state_dict(), path)
+
+
+
+    def predict(self, anomaly_score, threshold, ground_truth_label=[], protocol="apa"):
+        """
+            根据异常得分以及阈值输出预测结果，在此函数内调用评估协议或其他处理
+            :param anomaly_score: 异常得分
+            :param threshold: 阈值
+            :param ground_truth_label: 真值标签，不使用则不需要传
+            :param protocol: 调用的评估协议，不使用则不需要传
+
+       """
+
+        predict_label = np.where(anomaly_score > threshold, 1, 0)
+
+        if protocol == "pa":
+            anomaly_segments = findSegment(labels=ground_truth_label)
+            predict_label = pa(predict_label, anomaly_segments)
+        elif protocol =="apa":
+            anomaly_segments = findSegment(labels=ground_truth_label)
+            predict_label = apa(predict_label, anomaly_segments,alarm_coefficient=1,beita=4)
+
+        return predict_label
+
+
+    def getBestPredict(self,anomaly_score,n_thresholds = 100, ground_truth_label=[], protocol="apa",save_plot = False):
+
+        # 平均划分出n_thresholds个阈值
+        thresholds = np.linspace(np.min(anomaly_score), np.max(anomaly_score), num=n_thresholds)
+
+        # 根据阈值标记数组
+        marked_arr = np.where(anomaly_score > thresholds[:, np.newaxis], 1, 0)
+
+        f1_list = []
+
+        for predict_label in marked_arr:
+
+            if protocol == "pa":
+                anomaly_segments = findSegment(labels=ground_truth_label)
+                predict_label = pa(predict_label, anomaly_segments)
+            elif protocol == "apa":
+                anomaly_segments = findSegment(labels=ground_truth_label)
+                predict_label = apa(predict_label, anomaly_segments, alarm_coefficient=1, beita=4)
+
+            f1 = self.evaluate(predict_label=predict_label, ground_truth_label=ground_truth_label,write_log=False)
+
+            f1_list.append(f1)
+
+        f1_best = np.array(f1_list).max()
+        f1_best_index = np.array(f1_list).argmax()
+
+        best_threshold = thresholds[f1_best_index]
+        best_predict_label = self.predict(anomaly_score,best_threshold,ground_truth_label,protocol)
+
+        f1_best = self.evaluate(best_predict_label,ground_truth_label)
+        print(f1_best)
+
+        return best_predict_label,f1_best,best_threshold

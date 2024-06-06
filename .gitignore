@@ -9,4 +9,5 @@ Data/UCR/train/
 Data/UCR/test/
 Data/UCR/label/
 Plots/*
+CheckPoints/*
 .idea/

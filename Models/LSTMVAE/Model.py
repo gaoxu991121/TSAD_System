@@ -122,9 +122,11 @@ class LSTMVAE(BaseModel):
 
         # 设置余弦学习率衰减，这里的T_max是衰减周期
         scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
+        epoch_loss = []
 
         for ep in range(self.epoch):
             l1s = []
+            running_loss = 0
             for d in train_loader:
                 optimizer.zero_grad()
                 item = d[0].to(self.device)
@@ -138,19 +140,21 @@ class LSTMVAE(BaseModel):
                 loss = reconstruction_loss + kl_loss
 
                 l1s.append(torch.mean(loss).item())
+                running_loss += loss.item()
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
             scheduler.step()  # 在每个epoch后更新学习率
-
+            # 计算当前epoch的平均损失
+            epoch_loss.append(running_loss / len(train_loader))
             tqdm.write(f'train epoch [{ep}/{self.epoch}],\t loss = {np.mean(l1s)}')
 
 
         identifier = self.config["identifier"]
         if write_log:
-            wirteLog(self.config["base_path"] + "/Logs/" + identifier,"train_loss",{"train_loss":l1s})
+            wirteLog(self.config["base_path"] + "/Logs/" + identifier, "train_loss", {"epoch_loss": epoch_loss})
 
 
 
@@ -182,25 +186,4 @@ class LSTMVAE(BaseModel):
             score = minMaxScaling(data = score,min_value= score.min(),max_value=score.max(),range_max=1,range_min=0)
 
         return score
-
-    def predict(self,anomaly_score,threshold,ground_truth_label = [],protocol = ""):
-        """
-            根据异常得分以及阈值输出预测结果，在此函数内调用评估协议或其他处理
-            :param anomaly_score: 异常得分
-            :param threshold: 阈值
-            :param ground_truth_label: 真值标签，不使用则不需要传
-            :param protocol: 调用的评估协议，不使用则不需要传
-
-       """
-
-        predict_label = np.where(anomaly_score > threshold, 1, 0)
-
-        if protocol == "pa":
-            anomaly_segments = findSegment(labels=ground_truth_label)
-            predict_label = pa(predict_label, anomaly_segments)
-
-
-
-        return predict_label
-
 

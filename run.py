@@ -17,7 +17,7 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="LSTMAEV2", help='name of model')
+    parser.add_argument('--model_name', type=str, default="TRANSFORMER", help='name of model')
     parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
     parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
     parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
@@ -109,16 +109,16 @@ if __name__ == '__main__':
     anomaly_scores = model.test(test_loader)
     print(anomaly_scores)
     #predict anomaly based on the threshold
-    threshold = model.getThreshold()
-    predict_labels =  model.predict(anomaly_score=anomaly_scores,threshold=threshold,ground_truth_label=label,protocol="pa")
+    # threshold = model.getThreshold()
+    # predict_labels =  model.predict(anomaly_score=anomaly_scores,threshold=threshold,ground_truth_label=label)
+    #
+    #
+    # #evaluate
+    # f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label)
+    #
 
-
-    #evaluate
-    f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label)
-    print("f1-score:",f1)
-
-
-
+    predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 100,ground_truth_label=label,save_plot=True)
+    print("f1-score:", f1)
 
     #visualization
     plot_yaxis = []

@@ -4,7 +4,7 @@ import math
 
 
 def apa(predict_labels: np.ndarray = np.array([]),
-                           anomaly_segments: list = [], alarm_coefficient: float = 0.5,beita :float = 3.0,adjust_end = False) -> np.ndarray:
+                           anomaly_segments: list = [], alarm_coefficient: float = 0.5,beita :float = 3.0,adjust_end = True) -> np.ndarray:
 
     modified_labels = np.copy(predict_labels).astype(float)
 
