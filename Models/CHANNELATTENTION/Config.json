@@ -1,0 +1,34 @@
+{
+  "NASA": {
+    "M-1": {
+      "hidden_size": 40,
+      "window_size": 60,
+      "threshold": 0.5,
+      "batch_size": 64,
+      "num_layers": 2,
+      "num_heads": 1,
+      "drop_out_rate": 0.1,
+      "input_size": 55,
+      "epoch": 50,
+      "mask": false,
+      "learning_rate": 1e-3,
+      "predict_length": 1
+    }
+  },
+  "SWAT": {
+    "swat": {
+      "hidden_size": 40,
+      "window_size": 60,
+      "threshold": 0.5,
+      "batch_size": 64,
+      "num_layers": 2,
+      "num_heads": 1,
+      "drop_out_rate": 0.1,
+      "input_size": 51,
+      "epoch": 50,
+      "mask": false,
+      "learning_rate": 1e-3,
+      "predict_length": 1
+    }
+  }
+}

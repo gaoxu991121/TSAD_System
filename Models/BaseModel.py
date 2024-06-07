@@ -42,7 +42,7 @@ class BaseModel(nn.Module):
 
 
 
-    def evaluate(self, predict_label, ground_truth_label, write_log=True):
+    def evaluate(self, predict_label, ground_truth_label,threshold, write_log=True):
         """
             根据预测标签以及真值标签，给出评估结果。此处给出了f1，可添加其他
             :param predict_label: 预测标签
@@ -63,7 +63,8 @@ class BaseModel(nn.Module):
                 "fp": fp,
                 "tn": tn,
                 "fn": fn,
-                "f1": f1
+                "f1": f1,
+                "threshold":threshold
             }
             wirteLog(self.config["base_path"] + "/Logs/" + identifier, "evaluate", {"result": result})
 
@@ -122,17 +123,17 @@ class BaseModel(nn.Module):
         return predict_label
 
 
-    def getBestPredict(self,anomaly_score,n_thresholds = 100, ground_truth_label=[], protocol="apa",save_plot = False):
+    def getBestPredict(self,anomaly_score,n_thresholds = 25, ground_truth_label=[], protocol="apa",save_plot = False):
 
         # 平均划分出n_thresholds个阈值
         thresholds = np.linspace(np.min(anomaly_score), np.max(anomaly_score), num=n_thresholds)
-
+        thresholds = thresholds[1:]
         # 根据阈值标记数组
         marked_arr = np.where(anomaly_score > thresholds[:, np.newaxis], 1, 0)
 
         f1_list = []
 
-        for predict_label in marked_arr:
+        for idx,predict_label in enumerate(marked_arr):
 
             if protocol == "pa":
                 anomaly_segments = findSegment(labels=ground_truth_label)
@@ -141,7 +142,8 @@ class BaseModel(nn.Module):
                 anomaly_segments = findSegment(labels=ground_truth_label)
                 predict_label = apa(predict_label, anomaly_segments, alarm_coefficient=1, beita=4)
 
-            f1 = self.evaluate(predict_label=predict_label, ground_truth_label=ground_truth_label,write_log=False)
+            threshold = thresholds[idx]
+            f1 = self.evaluate(predict_label=predict_label, ground_truth_label=ground_truth_label,threshold = threshold,write_log=False)
 
             f1_list.append(f1)
 
@@ -151,7 +153,7 @@ class BaseModel(nn.Module):
         best_threshold = thresholds[f1_best_index]
         best_predict_label = self.predict(anomaly_score,best_threshold,ground_truth_label,protocol)
 
-        f1_best = self.evaluate(best_predict_label,ground_truth_label)
+        f1_best = self.evaluate(best_predict_label,ground_truth_label,best_threshold)
         print(f1_best)
 
         return best_predict_label,f1_best,best_threshold

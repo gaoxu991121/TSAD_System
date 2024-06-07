@@ -56,7 +56,7 @@ class Encoder(nn.Module):
 
         self.fc2 = nn.Linear(self.input_size, self.input_size)
 
-        self.attn_mask = torch.triu(torch.ones(self.window_size,self.window_size),diagonal=1).to(dtype=torch.bool)
+        self.attn_mask = torch.triu(torch.ones(self.window_size,self.window_size),diagonal=1).to(dtype=torch.int)
 
         self.divice = self.config["device"]
 

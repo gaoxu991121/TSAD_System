@@ -17,10 +17,10 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="TRANSFORMER", help='name of model')
-    parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
-    parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
-    parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
+    parser.add_argument('--model_name', type=str, default="CHANNELATTENTION", help='name of model')
+    parser.add_argument('--dataset', type=str, default="SWAT", help="name of dataset,like 'NASA'")
+    parser.add_argument('--filename', type=str, default="swat", help="file-name of time series ")
+    parser.add_argument('--filetype', type=str, default="csv", help="file-type of time series")
 
     parser.add_argument('--channels', type=int, default=55, help="nums of dimension for time series")
 
@@ -90,6 +90,8 @@ if __name__ == '__main__':
     #get data
     data_train,data_test,label = readData(dataset_path = config["base_path"] + "/Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
 
+    print("data_train shape:",data_train.shape)
+    print("data_test shape:", data_test.shape)
 
     device = config["device"]
 
@@ -117,7 +119,7 @@ if __name__ == '__main__':
     # f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label)
     #
 
-    predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 100,ground_truth_label=label,save_plot=True)
+    predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 25,ground_truth_label=label,save_plot=True)
     print("f1-score:", f1)
 
     #visualization
