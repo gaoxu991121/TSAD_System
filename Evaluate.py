@@ -492,7 +492,7 @@ if __name__ == '__main__':
     #get data
     data_train,data_test,label = readData(dataset_path = base_path + "/Data/SWAT" ,filename = "swat",file_type = "csv")
 
-
+    print("finish load data.")
 
     for config in configs:
         config["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -504,10 +504,10 @@ if __name__ == '__main__':
 
         # preprocess data
         (train_loader, test_loader) = model.processData(data_train, data_test, shuffle)
-
+        print("finish process data. start to train model.")
         # train model
         model.fit(train_loader=train_loader, write_log=False)
-
+        print("finish training model. start to test model.")
         # get anomaly score
         anomaly_scores = model.test(test_loader)
 
