@@ -36,8 +36,8 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
             for item in segments:
                 ax.fill_betweenx([-1, 1.1], item[0], item[1], color=colorTransform(255, 228, 181, 0.8))
                 # 添加垂直线
-                plt.axvline(x=item[0], ymin=-1, ymax=1, color='red', linestyle='--', linewidth=2)
-                plt.axvline(x=item[1], ymin=-1, ymax=1, color='red', linestyle='--', linewidth=2)
+                # plt.axvline(x=item[0], ymin=-1, ymax=1, color='red', linestyle='--', linewidth=2)
+                # plt.axvline(x=item[1], ymin=-1, ymax=1, color='red', linestyle='--', linewidth=2)
 
 
 

@@ -28,13 +28,13 @@ def trace(data):
      :param data: dict，字典类型的数据，以json形式保存
      """
 
-    path = "../Logs/"
+    path = "/Logs/"
     # 判断文件夹是否存在
     if not os.path.exists(path):
         # 如果文件夹不存在，则创建它
         os.makedirs(path)
 
-    path = "../Logs/trace.log"
+    path = "/Logs/trace.log"
     with open(path, 'a') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
