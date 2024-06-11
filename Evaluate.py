@@ -15,52 +15,12 @@ from importlib import import_module
 
 def getConfigs():
     config = [
-        {
-        "input_size": 50,
-        "epoch": 30,
-        "batch_size": 64,
-        "window_size": 60,
-        "identifier":"model-evaluation",
-        "model_name":"LSTM",
-        "hidden_size": 80,
-        "latent_size": 14,
-        "num_layers": 2,
-        "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
 
-        {
-            "input_size": 50,
-            "epoch": 80,
-            "batch_size": 64,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTM",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 2,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
-
-        {
-            "input_size": 50,
-            "epoch": 150,
-            "batch_size": 64,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTM",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 2,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
 
         {
             "input_size": 50,
             "epoch": 30,
-            "batch_size": 64,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMV2",
@@ -73,8 +33,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 80,
-            "batch_size": 64,
+            "epoch": 60,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMV2",
@@ -87,8 +47,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 150,
-            "batch_size": 64,
+            "epoch": 90,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMV2",
@@ -102,7 +62,7 @@ def getConfigs():
         {
             "input_size": 50,
             "epoch": 30,
-            "batch_size": 64,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMAE",
@@ -115,8 +75,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 80,
-            "batch_size": 64,
+            "epoch": 60,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMAE",
@@ -129,8 +89,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 150,
-            "batch_size": 64,
+            "epoch": 90,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMAE",
@@ -144,7 +104,7 @@ def getConfigs():
         {
             "input_size": 50,
             "epoch": 30,
-            "batch_size": 64,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMAEV2",
@@ -157,8 +117,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 80,
-            "batch_size": 64,
+            "epoch": 60,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMAEV2",
@@ -171,8 +131,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 150,
-            "batch_size": 64,
+            "epoch": 90,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMAEV2",
@@ -182,53 +142,13 @@ def getConfigs():
             "drop_out_rate": 0.3,
             "learning_rate": 1e-3,
         },
+
+
 
         {
             "input_size": 50,
             "epoch": 30,
-            "batch_size": 1,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTMAEV3",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 1,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
-
-        {
-            "input_size": 50,
-            "epoch": 80,
-            "batch_size": 1,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTMAEV3",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 1,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
-
-        {
-            "input_size": 50,
-            "epoch": 150,
-            "batch_size": 1,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTMAEV3",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 1,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
-
-        {
-            "input_size": 50,
-            "epoch": 30,
-            "batch_size": 1,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMVAE",
@@ -241,8 +161,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 80,
-            "batch_size": 1,
+            "epoch": 60,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMVAE",
@@ -255,8 +175,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 150,
-            "batch_size": 1,
+            "epoch": 90,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "LSTMVAE",
@@ -270,7 +190,7 @@ def getConfigs():
         {
             "input_size": 50,
             "epoch": 30,
-            "batch_size": 64,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "TRANAD",
@@ -284,8 +204,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 80,
-            "batch_size": 64,
+            "epoch": 60,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "TRANAD",
@@ -299,8 +219,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 150,
-            "batch_size": 64,
+            "epoch": 90,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "TRANAD",
@@ -315,7 +235,7 @@ def getConfigs():
         {
             "input_size": 50,
             "epoch": 30,
-            "batch_size": 64,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "TRANSFORMER",
@@ -329,8 +249,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 80,
-            "batch_size": 64,
+            "epoch": 60,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "TRANSFORMER",
@@ -344,8 +264,8 @@ def getConfigs():
 
         {
             "input_size": 50,
-            "epoch": 150,
-            "batch_size": 64,
+            "epoch": 90,
+            "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
             "model_name": "TRANSFORMER",
@@ -361,7 +281,7 @@ def getConfigs():
             "hidden_size": 40,
             "window_size": 60,
             "threshold": 0.5,
-            "batch_size": 64,
+            "batch_size": 128,
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
@@ -378,12 +298,12 @@ def getConfigs():
             "hidden_size": 40,
             "window_size": 60,
             "threshold": 0.5,
-            "batch_size": 64,
+            "batch_size": 128,
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
             "input_size": 50,
-            "epoch": 80,
+            "epoch": 60,
             "mask": False,
             "learning_rate": 1e-3,
             "predict_length": 1,
@@ -396,12 +316,12 @@ def getConfigs():
             "hidden_size": 40,
             "window_size": 60,
             "threshold": 0.5,
-            "batch_size": 64,
+            "batch_size": 128,
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
             "input_size": 50,
-            "epoch": 150,
+            "epoch": 90,
             "mask": False,
             "learning_rate": 1e-3,
             "predict_length": 1,
@@ -414,7 +334,7 @@ def getConfigs():
             "hidden_size": 40,
             "window_size": 60,
             "threshold": 0.5,
-            "batch_size": 64,
+            "batch_size": 128,
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
@@ -432,12 +352,12 @@ def getConfigs():
             "hidden_size": 40,
             "window_size": 60,
             "threshold": 0.5,
-            "batch_size": 64,
+            "batch_size": 128,
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
             "input_size": 50,
-            "epoch": 80,
+            "epoch": 60,
             "mask": False,
             "learning_rate": 1e-3,
             "predict_length": 1,
@@ -450,12 +370,12 @@ def getConfigs():
             "hidden_size": 40,
             "window_size": 60,
             "threshold": 0.5,
-            "batch_size": 64,
+            "batch_size": 128,
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
             "input_size": 50,
-            "epoch": 150,
+            "epoch": 90,
             "mask": False,
             "learning_rate": 1e-3,
             "predict_length": 1,
@@ -463,6 +383,91 @@ def getConfigs():
             "model_name": "CHANNELATTENTION",
             "shuffle": True,
         },
+
+        {
+            "input_size": 50,
+            "epoch": 30,
+            "batch_size": 128,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTM",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 2,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 50,
+            "epoch": 60,
+            "batch_size": 128,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTM",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 2,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 50,
+            "epoch": 90,
+            "batch_size": 128,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTM",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 2,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 50,
+            "epoch": 30,
+            "batch_size": 1,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTMAEV3",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 1,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 50,
+            "epoch": 60,
+            "batch_size": 1,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTMAEV3",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 1,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 50,
+            "epoch": 90,
+            "batch_size": 1,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTMAEV3",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 1,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
 
     ]
 
@@ -491,7 +496,8 @@ if __name__ == '__main__':
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
     data_train,data_test,label = readData(dataset_path = base_path + "/Data/SWAT" ,filename = "swat",file_type = "csv")
-
+    print("data_train shape:",data_train.shape)
+    print("data_test shape:",data_test.shape)
     print("finish load data.")
 
     for config in configs:
