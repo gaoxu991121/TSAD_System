@@ -149,7 +149,7 @@ class LSTMVAE(BaseModel):
             scheduler.step()  # 在每个epoch后更新学习率
             # 计算当前epoch的平均损失
             epoch_loss.append(running_loss / len(train_loader))
-            tqdm.write(f'train epoch [{ep}/{self.epoch}],\t loss = {np.mean(l1s)}')
+            print(f'train epoch [{ep}/{self.epoch}],\t loss = {np.mean(l1s)}')
 
 
         identifier = self.config["identifier"]
