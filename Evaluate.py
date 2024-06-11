@@ -535,7 +535,7 @@ if __name__ == '__main__':
             # 如果文件夹不存在，则创建它
             os.makedirs(plot_path)
         plotAllResult(x_axis=np.arange(len(anomaly_scores)), y_axises=plot_yaxis, title=config["model_name"],
-                      save_path=plot_path + "/" + config["model_name"] + "-" + config["epoch"] + ".pdf", segments=findSegment(label),
+                      save_path=plot_path + "/" + config["model_name"] + "-" + str(config["epoch"]) + ".pdf", segments=findSegment(label),
                       threshold=None)
 
         config["apa_f1"] = apa_f1
