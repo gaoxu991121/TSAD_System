@@ -18,7 +18,7 @@ def getConfigs():
 
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -32,7 +32,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -46,7 +46,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -60,7 +60,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -74,7 +74,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -88,7 +88,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -102,7 +102,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -116,7 +116,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -130,7 +130,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -146,7 +146,7 @@ def getConfigs():
 
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -160,7 +160,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -174,7 +174,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -188,7 +188,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -203,7 +203,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -218,7 +218,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -233,7 +233,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -248,7 +248,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -263,7 +263,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -285,7 +285,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "mask": False,
             "learning_rate": 1e-3,
@@ -302,7 +302,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "mask": False,
             "learning_rate": 1e-3,
@@ -320,7 +320,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "mask": False,
             "learning_rate": 1e-3,
@@ -338,7 +338,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "mask": False,
             "learning_rate": 1e-3,
@@ -356,7 +356,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "mask": False,
             "learning_rate": 1e-3,
@@ -374,7 +374,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "mask": False,
             "learning_rate": 1e-3,
@@ -385,7 +385,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
@@ -399,7 +399,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 128,
             "window_size": 60,
@@ -413,7 +413,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 128,
             "window_size": 60,
@@ -427,7 +427,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 30,
             "batch_size": 1,
             "window_size": 60,
@@ -441,7 +441,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 60,
             "batch_size": 1,
             "window_size": 60,
@@ -455,7 +455,7 @@ def getConfigs():
         },
 
         {
-            "input_size": 50,
+            "input_size": 51,
             "epoch": 90,
             "batch_size": 1,
             "window_size": 60,
