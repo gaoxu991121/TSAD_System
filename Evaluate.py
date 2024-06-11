@@ -26,7 +26,7 @@ def getConfigs():
         "latent_size": 14,
         "num_layers": 2,
         "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -40,7 +40,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 2,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -54,7 +54,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 2,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -68,7 +68,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 2,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -82,7 +82,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 2,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -96,7 +96,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 2,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -110,7 +110,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -124,7 +124,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -138,7 +138,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -152,7 +152,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -166,7 +166,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -180,7 +180,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -194,7 +194,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -208,7 +208,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -222,7 +222,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -236,7 +236,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -250,7 +250,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -264,7 +264,7 @@ def getConfigs():
             "latent_size": 14,
             "num_layers": 1,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -279,6 +279,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 5,
             "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
         },
 
         {
@@ -293,7 +294,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 5,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -308,7 +309,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 5,
             "drop_out_rate": 0.3,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -323,6 +324,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
+            "learning_rate": 1e-3,
         },
 
         {
@@ -337,7 +339,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -352,7 +354,7 @@ def getConfigs():
             "num_layers": 2,
             "num_heads": 1,
             "drop_out_rate": 0.1,
-
+            "learning_rate": 1e-3,
         },
 
         {
@@ -486,7 +488,7 @@ if __name__ == '__main__':
 
     configs = getConfigs()
 
-    base_path = os.path.dirname(os.path.abspath(__file__)) 
+    base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
     data_train,data_test,label = readData(dataset_path = base_path + "/Data/SWAT" ,filename = "swat",file_type = "csv")
 
