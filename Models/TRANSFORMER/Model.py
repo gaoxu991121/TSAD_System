@@ -119,7 +119,7 @@ class TRANSFORMER(BaseModel):
 
 
 
-                l1s.append(torch.mean(loss).item().detach())
+                l1s.append(torch.mean(loss).item())
 
                 running_loss += loss.item()
 
