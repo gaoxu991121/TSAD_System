@@ -101,26 +101,42 @@ class BaseModel(nn.Module):
 
 
 
-    def predict(self, anomaly_score, threshold, ground_truth_label=[], protocol="apa"):
-        """
-            根据异常得分以及阈值输出预测结果，在此函数内调用评估协议或其他处理
-            :param anomaly_score: 异常得分
-            :param threshold: 阈值
-            :param ground_truth_label: 真值标签，不使用则不需要传
-            :param protocol: 调用的评估协议，不使用则不需要传
+    def test(self,test_dataloader) -> np.array([]):
+        pass
 
-       """
+
+    def decide(self, anomaly_score, threshold, ground_truth_label=[], protocol="apa"):
+        """
+                   根据异常得分以及阈值输出预测结果，在此函数内调用评估协议或其他处理
+                   :param anomaly_score: 异常得分
+                   :param threshold: 阈值
+                   :param ground_truth_label: 真值标签，不使用则不需要传
+                   :param protocol: 调用的评估协议，不使用则不需要传
+
+              """
 
         predict_label = np.where(anomaly_score > threshold, 1, 0)
 
         if protocol == "pa":
             anomaly_segments = findSegment(labels=ground_truth_label)
             predict_label = pa(predict_label, anomaly_segments)
-        elif protocol =="apa":
+        elif protocol == "apa":
             anomaly_segments = findSegment(labels=ground_truth_label)
-            predict_label = apa(predict_label, anomaly_segments,alarm_coefficient=1,beita=4)
+            predict_label = apa(predict_label, anomaly_segments, alarm_coefficient=1, beita=4)
 
         return predict_label
+
+    def predict(self, test_loader,label,protocol = ""):
+        anomaly_scores = self.test(test_loader)
+
+        # predict anomaly based on the threshold
+        threshold = self.getThreshold()
+        predict_labels = self.decide(anomaly_score=anomaly_scores, threshold=threshold, ground_truth_label=label,protocol=protocol)
+
+        # evaluate
+        f1 = self.evaluate(predict_label=predict_labels, ground_truth_label=label,threshold=threshold)
+        return f1
+
 
 
     def getBestPredict(self,anomaly_score,n_thresholds = 25, ground_truth_label=[], protocol="apa",save_plot = False):

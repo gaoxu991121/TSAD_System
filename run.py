@@ -17,7 +17,7 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="ANOMALYTRANSFORMER", help='name of model')
+    parser.add_argument('--model_name', type=str, default="LSTMVAE", help='name of model')
     parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
     parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
     parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
@@ -106,10 +106,10 @@ if __name__ == '__main__':
 
     #train model
     model.fit(train_loader=train_loader,write_log=True)
-
+    print(model.predict(test_loader,label))
     #get anomaly score
-    anomaly_scores = model.test(test_loader)
-    print(anomaly_scores)
+    # anomaly_scores = model.test(test_loader)
+    # print(anomaly_scores)
     #predict anomaly based on the threshold
     # threshold = model.getThreshold()
     # predict_labels =  model.predict(anomaly_score=anomaly_scores,threshold=threshold,ground_truth_label=label)
@@ -117,22 +117,22 @@ if __name__ == '__main__':
     #
     # #evaluate
     # f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label)
-    #
 
-    predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 25,ground_truth_label=label,save_plot=True)
-    print("f1-score:", f1)
+
+    # predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 25,ground_truth_label=label,save_plot=True)
+    # print("f1-score:", f1)
 
     #visualization
-    plot_yaxis = []
-    plot_yaxis.append(anomaly_scores)
-    plot_yaxis.append(predict_labels)
-    plot_path = config["base_path"]+"/Plots/"+config["identifier"]
-    # 判断文件夹是否存在
-    if not os.path.exists(plot_path):
-        # 如果文件夹不存在，则创建它
-        os.makedirs(plot_path)
-    plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
-                    save_path=plot_path+"/result.pdf", segments=findSegment(label),
-                    threshold=threshold)
+    # plot_yaxis = []
+    # plot_yaxis.append(anomaly_scores)
+    # plot_yaxis.append(predict_labels)
+    # plot_path = config["base_path"]+"/Plots/"+config["identifier"]
+    # # 判断文件夹是否存在
+    # if not os.path.exists(plot_path):
+    #     # 如果文件夹不存在，则创建它
+    #     os.makedirs(plot_path)
+    # plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
+    #                 save_path=plot_path+"/result.pdf", segments=findSegment(label),
+    #                 threshold=threshold)
 
 

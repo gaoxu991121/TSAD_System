@@ -80,8 +80,8 @@ class LSTMAEV2(BaseModel):
         train_dataset = TensorDataset(torch.tensor(data_train).float())
         test_dataset = TensorDataset(torch.tensor(data_test).float())
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,drop_last=True)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,drop_last=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,drop_last=True,num_workers=8)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,drop_last=True,num_workers=8)
 
         return (train_loader,test_loader)
 

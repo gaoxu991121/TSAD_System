@@ -108,8 +108,8 @@ class LSTMVAE(BaseModel):
         train_dataset = TensorDataset(torch.tensor(data_train).float())
         test_dataset = TensorDataset(torch.tensor(data_test).float())
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,num_workers=8)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,num_workers=8)
 
         return (train_loader,test_loader)
 

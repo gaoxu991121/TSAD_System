@@ -91,8 +91,8 @@ class LSTM(BaseModel):
         window_size = self.config["window_size"]
         batch_size = self.config["batch_size"]
 
-        data_train = convertToWindow(data = data_train, window_size = window_size)
-        data_test = convertToWindow(data = data_test, window_size = window_size)
+        data_train = convertToWindow(data = data_train, window_size = window_size,num_workers=8)
+        data_test = convertToWindow(data = data_test, window_size = window_size,num_workers=8)
 
         if shuffle:
             data_train = self.shuffle(data_train)
