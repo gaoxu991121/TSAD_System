@@ -101,8 +101,8 @@ class CHANNELATTENTION(BaseModel):
         train_dataset = TensorDataset(torch.tensor(data_train).float())
         test_dataset = TensorDataset(torch.tensor(data_test).float())
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,num_workers=8)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,num_workers=8)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,num_workers=8,pin_memory=True,prefetch_factor=2)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,num_workers=8,pin_memory=True,prefetch_factor=2)
 
         return (train_loader, test_loader)
 
