@@ -18,8 +18,6 @@ from Utils.LogUtil import wirteLog
 from torch.nn import functional as F
 
 from Utils.ProtocolUtil import pa
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 
@@ -215,14 +213,14 @@ class CHANNELATTENTION(BaseModel):
 
 
         print("attn hape:",attn_weight.shape)
-        attn_weights_sample = attn_weight[-1]
-        # 可视化注意力权重
-        plt.figure(figsize=(12, 8))
-        sns.heatmap(attn_weights_sample.detach().numpy(), cmap='viridis')
-        plt.title("Attention Weights across Channels")
-        plt.xlabel("Channels")
-        plt.ylabel("Channels")
-        plt.show()
+        # attn_weights_sample = attn_weight[-1]
+        # # 可视化注意力权重
+        # plt.figure(figsize=(12, 8))
+        # sns.heatmap(attn_weights_sample.detach().numpy(), cmap='viridis')
+        # plt.title("Attention Weights across Channels")
+        # plt.xlabel("Channels")
+        # plt.ylabel("Channels")
+        # plt.show()
 
 
 
