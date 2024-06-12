@@ -17,10 +17,10 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="CHANNELATTENTION", help='name of model')
-    parser.add_argument('--dataset', type=str, default="SWAT", help="name of dataset,like 'NASA'")
-    parser.add_argument('--filename', type=str, default="swat", help="file-name of time series ")
-    parser.add_argument('--filetype', type=str, default="csv", help="file-type of time series")
+    parser.add_argument('--model_name', type=str, default="ANOMALYTRANSFORMER", help='name of model')
+    parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
+    parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
+    parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
 
     parser.add_argument('--channels', type=int, default=55, help="nums of dimension for time series")
 
@@ -55,7 +55,7 @@ def getConfig(args):
 
     model_config = readJson(path = config["base_path"] + "/Models/"+config["model"]+"/Config.json")
 
-    config = {** config , **model_config[config["dataset"]][config["filename"]]}
+    config = { **model_config[config["dataset"]][config["filename"]],** config }
 
     #fix random seed
     # fix_seed = args.random_seed

@@ -20,47 +20,7 @@ def getConfigs():
 
 
 
-        {
-            "input_size": 51,
-            "epoch": 30,
-            "batch_size": 128,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTMVAE",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 1,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
 
-        {
-            "input_size": 51,
-            "epoch": 60,
-            "batch_size": 128,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTMVAE",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 1,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
-
-        {
-            "input_size": 51,
-            "epoch": 90,
-            "batch_size": 128,
-            "window_size": 60,
-            "identifier": "model-evaluation",
-            "model_name": "LSTMVAE",
-            "hidden_size": 80,
-            "latent_size": 14,
-            "num_layers": 1,
-            "drop_out_rate": 0.3,
-            "learning_rate": 1e-3,
-        },
 
         {
             "input_size": 51,
@@ -72,7 +32,7 @@ def getConfigs():
             "hidden_size": 80,
             "latent_size": 14,
             "num_layers": 2,
-            "num_heads": 5,
+            "num_heads": 1,
             "drop_out_rate": 0.3,
             "learning_rate": 1e-3,
         },
@@ -87,7 +47,7 @@ def getConfigs():
             "hidden_size": 80,
             "latent_size": 14,
             "num_layers": 2,
-            "num_heads": 5,
+            "num_heads": 1,
             "drop_out_rate": 0.3,
             "learning_rate": 1e-3,
         },
@@ -102,7 +62,7 @@ def getConfigs():
             "hidden_size": 80,
             "latent_size": 14,
             "num_layers": 2,
-            "num_heads": 5,
+            "num_heads": 1,
             "drop_out_rate": 0.3,
             "learning_rate": 1e-3,
         },
@@ -468,6 +428,50 @@ def getConfigs():
             "drop_out_rate": 0.3,
             "learning_rate": 1e-3,
         },
+
+        {
+            "input_size": 51,
+            "epoch": 30,
+            "batch_size": 128,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTMVAE",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 1,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 51,
+            "epoch": 60,
+            "batch_size": 128,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTMVAE",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 1,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        {
+            "input_size": 51,
+            "epoch": 90,
+            "batch_size": 128,
+            "window_size": 60,
+            "identifier": "model-evaluation",
+            "model_name": "LSTMVAE",
+            "hidden_size": 80,
+            "latent_size": 14,
+            "num_layers": 1,
+            "drop_out_rate": 0.3,
+            "learning_rate": 1e-3,
+        },
+
+        
 
     ]
 

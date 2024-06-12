@@ -7,7 +7,7 @@ import torch.nn.functional as F
 class AnomalyBlockList(nn.Module):
     def __init__(self, attn_list):
         super(AnomalyBlockList, self).__init__()
-        self.attn_list = nn.ModuleList(attn_list)
+        self.attn_layers = nn.ModuleList(attn_list)
 
 
 
@@ -73,10 +73,10 @@ class AnomalyMultiHeadAttention(nn.Module):
         self.key = nn.Linear(embed_dim, embed_dim)
         self.value = nn.Linear(embed_dim, embed_dim)
 
-        self.sigma = nn.Linear(embed_dim, embed_dim)
+        self.sigma = nn.Linear(embed_dim, window_size)
         self.out = nn.Linear(embed_dim, embed_dim)
 
-        self.distances = torch.zeros((window_size, window_size)).cuda()
+        self.distances = torch.zeros((window_size, window_size))
         for i in range(window_size):
             for j in range(window_size):
                 self.distances[i][j] = abs(i - j)
@@ -107,7 +107,8 @@ class AnomalyMultiHeadAttention(nn.Module):
         value = value.view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
 
 
-        prior = 1/(math.sqrt(2*torch.pi) * sigma) * torch.exp(-(torch.pow(self.distances,2))/(2 * sigma ) )
+        prior = 1/(math.sqrt(2*torch.pi) * sigma) *\
+                torch.exp(-(torch.pow(self.distances,2))/(2 * sigma ) )
 
         # Apply scaled dot-product attention
         attention_output, series = self.scaled_dot_product_attention(query, key, value, mask)

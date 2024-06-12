@@ -47,7 +47,7 @@ class ANOMALYTRANSFORMER(BaseModel):
             [
                 AnomalyBlock(self.input_size,self.num_heads,self.window_size,self.drop_out_rate)
 
-            ] for i in range(self.num_layers)
+            for i in range(self.num_layers) ]
         )
 
         self.pe = PE(self.input_size, max_len=self.window_size)
@@ -59,7 +59,7 @@ class ANOMALYTRANSFORMER(BaseModel):
 
         x = self.pe(x)
 
-        output, series, prior = self.block(x)
+        output, series, prior = self.blocks(x)
 
         return output, series, prior
 
@@ -94,12 +94,14 @@ class ANOMALYTRANSFORMER(BaseModel):
         return (train_loader, test_loader)
 
     def getKlLoss(self,p, q):
+
+
         res = p * (torch.log(p + 0.0001) - torch.log(q + 0.0001))
         return torch.sum(res, dim=-1)
 
     def getAssDis(self, prior, series):
 
-        return self.getKlLoss(prior,series) + self.getKlLoss(self,prior)
+        return self.getKlLoss(prior,series) + self.getKlLoss(prior,series)
 
     def fit(self, train_loader, write_log=False):
 
@@ -134,10 +136,14 @@ class ANOMALYTRANSFORMER(BaseModel):
                 series_kl_loss = 0
                 prior_kl_loss = 0
 
-                for i in range(num_layers):
 
-                    series_kl_loss +=  self.getAssDis(prior_list[i],series_list[i].detach()).mean()
-                    prior_kl_loss += self.getAssDis(prior_list[i].detach(),series_list[i]).mean()
+
+                for i in range(num_layers):
+                    prior = prior_list[i]
+                    serie = series_list[i][:,-1,:,:]
+
+                    series_kl_loss +=  self.getAssDis(prior = prior,series=serie.detach()).mean()
+                    prior_kl_loss += self.getAssDis(prior = prior.detach(),series=serie).mean()
 
 
                 series_kl_loss = (series_kl_loss / num_layers).sum(dim=-1)
@@ -146,7 +152,9 @@ class ANOMALYTRANSFORMER(BaseModel):
 
 
                 reco_loss = F.mse_loss(output_list[-1],item,reduction='sum')
-
+                print("recon loss:",reco_loss)
+                print("prior_kl_loss:", prior_kl_loss)
+                print("series_kl_loss:", series_kl_loss)
                 loss1 = reco_loss - self.k * series_kl_loss
 
                 loss2 = reco_loss + self.k * prior_kl_loss
