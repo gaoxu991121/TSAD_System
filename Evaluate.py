@@ -471,7 +471,7 @@ def getConfigs():
             "learning_rate": 1e-3,
         },
 
-        
+
 
     ]
 

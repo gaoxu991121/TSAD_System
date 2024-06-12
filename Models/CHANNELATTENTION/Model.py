@@ -50,7 +50,7 @@ class CHANNELATTENTION(BaseModel):
         self.fc = nn.Linear(self.input_size,self.input_size)
         self.dropout = nn.Dropout(self.drop_out_rate)
         if self.mask:
-            self.attn_mask = torch.triu(torch.ones(self.input_size,self.input_size),diagonal=1).to(dtype=torch.int)
+            self.attn_mask = torch.triu(torch.ones(self.input_size,self.input_size),diagonal=1).to(dtype=torch.float)
         else:
             self.attn_mask = None
 
