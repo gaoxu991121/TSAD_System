@@ -165,7 +165,7 @@ class TRANAD(BaseModel):
 
     def forward(self,  w):
 
-        focus_score = torch.zeros_like(w)
+        focus_score = torch.zeros_like(w).to(self.divice)
 
         #phase 1
         x1 = self.decoder1(self.encoder(w, w, focus_score))
