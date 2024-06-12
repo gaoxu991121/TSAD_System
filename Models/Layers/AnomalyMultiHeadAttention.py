@@ -43,7 +43,9 @@ class AnomalyBlock(nn.Module):
         self.layer_norm2 = nn.LayerNorm(embed_dim)
 
         self.attention = AnomalyMultiHeadAttention(embed_dim, num_heads, window_size)
-        self.mask = torch.triu(torch.ones(self.window_size,self.window_size),diagonal=1).to(dtype=torch.float)
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.mask = torch.triu(torch.ones(self.window_size,self.window_size),diagonal=1).to(self.device)
 
 
 

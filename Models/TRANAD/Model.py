@@ -26,6 +26,8 @@ class Encoder(nn.Module):
     def __init__(self, config):
         super(Encoder, self).__init__()
         self.config = config
+        self.device = self.config["device"]
+        
         self.input_size = self.config["input_size"]
 
         self.drop_out_rate = self.config["drop_out_rate"]
@@ -56,9 +58,9 @@ class Encoder(nn.Module):
 
         self.fc2 = nn.Linear(self.input_size, self.input_size)
 
-        self.attn_mask = torch.triu(torch.ones(self.window_size,self.window_size),diagonal=1).to(dtype=torch.float)
+        self.attn_mask = torch.triu(torch.ones(self.window_size,self.window_size),diagonal=1).to(self.device)
 
-        self.divice = self.config["device"]
+
 
 
     def forward(self, c, w, focus_score):
@@ -151,7 +153,7 @@ class TRANAD(BaseModel):
         self.window_size = self.config["window_size"]
 
 
-        self.divice = self.config["device"]
+        self.device = self.config["device"]
 
         self.encoder = Encoder(self.config)
         self.decoder1 = Decoder(self.config)
@@ -165,7 +167,7 @@ class TRANAD(BaseModel):
 
     def forward(self,  w):
 
-        focus_score = torch.zeros_like(w).to(self.divice)
+        focus_score = torch.zeros_like(w).to(self.device)
 
         #phase 1
         x1 = self.decoder1(self.encoder(w, w, focus_score))
@@ -228,7 +230,7 @@ class TRANAD(BaseModel):
             running_loss = 0
             for d in train_loader:
                 optimizer.zero_grad()
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
 
 
@@ -272,7 +274,7 @@ class TRANAD(BaseModel):
 
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
                 x1, x2 = self.forward(item)
 

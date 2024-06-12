@@ -40,7 +40,7 @@ class CHANNELATTENTION(BaseModel):
         self.window_size = self.config["window_size"]
 
 
-        self.divice = self.config["device"]
+        self.device = self.config["device"]
 
         self.mask = self.config["mask"]
         self.predict_length = self.config["predict_length"]
@@ -50,7 +50,7 @@ class CHANNELATTENTION(BaseModel):
         self.fc = nn.Linear(self.input_size,self.input_size)
         self.dropout = nn.Dropout(self.drop_out_rate)
         if self.mask:
-            self.attn_mask = torch.triu(torch.ones(self.input_size,self.input_size),diagonal=1).to(dtype=torch.float)
+            self.attn_mask = torch.triu(torch.ones(self.input_size,self.input_size),diagonal=1).to(self.device)
         else:
             self.attn_mask = None
 
@@ -134,7 +134,7 @@ class CHANNELATTENTION(BaseModel):
             running_loss = 0
             for d in train_loader:
                 optimizer.zero_grad()
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
 
 
@@ -185,7 +185,7 @@ class CHANNELATTENTION(BaseModel):
 
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
-                item = d[0].to(self.divice)
+                item = d[0].to(self.device)
 
 
                 output, attn_weight = self.forward(item)
@@ -210,7 +210,7 @@ class CHANNELATTENTION(BaseModel):
         attn_weight = None
         with torch.no_grad():
 
-                item = data_tensor.to(self.divice)
+                item = data_tensor.to(self.device)
                 output, attn_weight = self.forward(item)
 
 
