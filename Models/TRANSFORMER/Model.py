@@ -105,7 +105,7 @@ class TRANSFORMER(BaseModel):
 
         for ep in range(self.epoch):
             ep = ep + 1
-            l1s = []
+            # l1s = []
             running_loss = 0
             for d in train_loader:
                 optimizer.zero_grad()
@@ -119,7 +119,7 @@ class TRANSFORMER(BaseModel):
 
 
 
-                l1s.append(torch.mean(loss).item())
+                # l1s.append(torch.mean(loss).item())
 
                 running_loss += loss.item()
 
@@ -132,7 +132,7 @@ class TRANSFORMER(BaseModel):
             # 计算当前epoch的平均损失
             epoch_loss.append(running_loss / len(train_loader))
 
-            print(f'train epoch [{ep}/{self.epoch}],\t loss = {np.mean(l1s)}')
+            print(f'train epoch [{ep}/{self.epoch}],\t loss = {epoch_loss}')
 
         identifier = self.config["identifier"]
 
