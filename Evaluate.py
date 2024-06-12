@@ -484,6 +484,7 @@ if __name__ == '__main__':
     configs = getConfigs()
 
     base_path = os.path.dirname(os.path.abspath(__file__))
+    configs["base_path"] = base_path
     #get data
     data_train,data_test,label = readData(dataset_path = base_path + "/Data/SWAT" ,filename = "swat",file_type = "csv")
     print("data_train shape:",data_train.shape)
