@@ -153,7 +153,7 @@ class BaseModel(nn.Module):
         best_threshold = thresholds[f1_best_index]
         best_predict_label = self.predict(anomaly_score,best_threshold,ground_truth_label,protocol)
 
-        f1_best = self.evaluate(best_predict_label,ground_truth_label,best_threshold)
+        f1_best = self.evaluate(best_predict_label,ground_truth_label,best_threshold,write_log=False)
         print(f1_best)
 
         return best_predict_label,f1_best,best_threshold
