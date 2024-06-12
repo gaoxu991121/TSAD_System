@@ -491,7 +491,8 @@ if __name__ == '__main__':
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
     data_train,data_test,label = readData(dataset_path = base_path + "/Data/SWAT" ,filename = "swat",file_type = "csv")
-
+    print("data_train shape:",data_train.shape)
+    print("data_test shape:",data_test.shape)
     print("finish load data.")
 
     for config in configs:
