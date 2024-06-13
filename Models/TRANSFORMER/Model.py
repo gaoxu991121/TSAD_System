@@ -104,7 +104,7 @@ class TRANSFORMER(BaseModel):
 
 
         for ep in range(self.epoch):
-            ep = ep + 1
+
             # l1s = []
             running_loss = 0
             for d in train_loader:
@@ -132,7 +132,8 @@ class TRANSFORMER(BaseModel):
             # 计算当前epoch的平均损失
             epoch_loss.append(running_loss / len(train_loader))
 
-            print(f'train epoch [{ep}/{self.epoch}],\t loss = {epoch_loss}')
+            print(f'train epoch [{ep+1}/{self.epoch}],\t loss = {epoch_loss[ep]}')
+
 
         identifier = self.config["identifier"]
 
