@@ -3,6 +3,9 @@ import os
 import torch
 import torch.nn as nn
 import numpy as np
+from torch.utils.data import TensorDataset, DataLoader
+
+from Preprocess.Window import convertToWindow
 from Utils.EvalUtil import countResult
 from Utils.LogUtil import wirteLog
 from Utils.EvalUtil import countResult, findSegment
@@ -66,6 +69,7 @@ class BaseModel(nn.Module):
                 "f1": f1,
                 "threshold":threshold
             }
+            print("result:",result)
             wirteLog(self.config["base_path"] + "/Logs/" + identifier, "evaluate", {"result": result})
 
         return f1
@@ -101,9 +105,33 @@ class BaseModel(nn.Module):
 
 
 
-    def test(self,test_dataloader) -> np.array([]):
+    def fit(self,train_data):
         pass
 
+    def test(self,test_data):
+        pass
+
+    def processData(self, data, shuffle=False):
+        """
+            对数据进行的预处理
+            注意输出类型为可以直接送入训练的data_loader或张量
+            :param data: 数据
+
+        """
+
+        window_size = self.config["window_size"]
+        batch_size = self.config["batch_size"]
+
+        data = convertToWindow(data=data, window_size=window_size)
+
+        if shuffle:
+            data = self.shuffle(data)
+
+        dataset = TensorDataset(torch.tensor(data).float())
+
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+        return dataloader
 
     def decide(self, anomaly_score, threshold, ground_truth_label=[], protocol="apa"):
         """
@@ -126,15 +154,15 @@ class BaseModel(nn.Module):
 
         return predict_label
 
-    def predict(self, test_loader,label,protocol = ""):
-        anomaly_scores = self.test(test_loader)
+    def predict(self, test_data,label,protocol = ""):
+        anomaly_scores = self.test(test_data)
 
         # predict anomaly based on the threshold
         threshold = self.getThreshold()
         predict_labels = self.decide(anomaly_score=anomaly_scores, threshold=threshold, ground_truth_label=label,protocol=protocol)
 
         # evaluate
-        f1 = self.evaluate(predict_label=predict_labels, ground_truth_label=label,threshold=threshold)
+        f1 = self.evaluate(predict_label=predict_labels, ground_truth_label=label,threshold=threshold,write_log=False)
         return f1
 
 

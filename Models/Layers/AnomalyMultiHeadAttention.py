@@ -109,8 +109,7 @@ class AnomalyMultiHeadAttention(nn.Module):
         value = value.view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
 
 
-        prior = 1/(math.sqrt(2*torch.pi) * sigma) *\
-                torch.exp(-(torch.pow(self.distances,2))/(2 * sigma ) )
+        prior = 1/(math.sqrt(2*math.pi) * sigma) * torch.exp(-(torch.pow(self.distances,2))/(2 * (torch.pow(sigma,2)) ) )
 
         # Apply scaled dot-product attention
         attention_output, series = self.scaled_dot_product_attention(query, key, value, mask)

@@ -65,46 +65,15 @@ class ANOMALYTRANSFORMER(BaseModel):
 
 
 
-
-    def processData(self, data_train, data_test, shuffle=False):
-        """
-            对数据进行的预处理
-            注意输出类型为可以直接送入训练的data_loader或张量
-
-            :param data_train: 训练数据
-            :param data_test: 测试数据
-
-        """
-
-        window_size = self.config["window_size"]
-        batch_size = self.config["batch_size"]
-
-        data_train = convertToWindow(data=data_train, window_size=window_size)
-        data_test = convertToWindow(data=data_test, window_size=window_size)
-
-        if shuffle:
-            data_train = self.shuffle(data_train)
-
-        train_dataset = TensorDataset(torch.tensor(data_train).float())
-        test_dataset = TensorDataset(torch.tensor(data_test).float())
-
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,num_workers=8)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,num_workers=8)
-
-        return (train_loader, test_loader)
-
     def getKlLoss(self,p, q):
-
-
-        res = p * (torch.log(p + 0.0001) - torch.log(q + 0.0001))
-        return torch.sum(res, dim=-1)
+        return   F.kl_div(p,q).sum(dim=-1)
 
     def getAssDis(self, prior, series):
 
         return self.getKlLoss(prior,series) + self.getKlLoss(prior,series)
 
-    def fit(self, train_loader, write_log=False):
-
+    def fit(self, train_data, write_log=False):
+        train_loader = self.processData(train_data)
         self.train()
         lr = self.config["learning_rate"]
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
@@ -141,6 +110,9 @@ class ANOMALYTRANSFORMER(BaseModel):
                 for i in range(num_layers):
                     prior = prior_list[i]
                     serie = series_list[i][:,-1,:,:]
+                    # print("series:",serie)
+                    # print("prior:",prior)
+                    # print("prior shape:",prior.shape)
 
                     series_kl_loss +=  self.getAssDis(prior = prior,series=serie.detach()).mean()
                     prior_kl_loss += self.getAssDis(prior = prior.detach(),series=serie).mean()
@@ -152,15 +124,15 @@ class ANOMALYTRANSFORMER(BaseModel):
 
 
                 reco_loss = F.mse_loss(output_list[-1],item,reduction='sum')
-                print("recon loss:",reco_loss)
-                print("prior_kl_loss:", prior_kl_loss)
-                print("series_kl_loss:", series_kl_loss)
+                # print("recon loss:",reco_loss)
+                # print("prior_kl_loss:", prior_kl_loss)
+                # print("series_kl_loss:", series_kl_loss)
                 loss1 = reco_loss - self.k * series_kl_loss
 
                 loss2 = reco_loss + self.k * prior_kl_loss
 
 
-                l1s.append(torch.mean(loss2).item())
+                l1s.append(torch.mean(loss2).item() + torch.mean(loss1).item() )
 
                 running_loss += loss2.item()
 
@@ -185,17 +157,19 @@ class ANOMALYTRANSFORMER(BaseModel):
         if write_log:
             wirteLog(self.config["base_path"] + "/Logs/" + identifier, "train_loss", {"epoch_loss": epoch_loss})
 
-    def test(self, test_dataloader):
+    def test(self, test_data):
         """
              在测试集上进行测试，输出的是归一到[0,1]的numpy数组类型的异常得分
-             :param test_dataloader: 测试数据
+             :param test_data: 测试数据
 
         """
+
+        test_dataloader = self.processData(test_data)
 
         self.eval()
         score = []
 
-        l = nn.MSELoss(reduction='sum')
+        l = nn.MSELoss(reduction='none')
 
         with torch.no_grad():
             for index, d in enumerate(test_dataloader):
@@ -208,7 +182,7 @@ class ANOMALYTRANSFORMER(BaseModel):
                 ass_loss = 0
 
                 for i in range(num_layers):
-                    ass_loss += self.getAssDis(prior_list[i], series_list[i])
+                    ass_loss += self.getAssDis(prior_list[i], series_list[i][:,-1,:,:])
 
                 ass_loss = ass_loss / num_layers
                 anomaly_score = torch.softmax(-ass_loss,dim=-1) * l(output_list[-1],item)
@@ -218,8 +192,7 @@ class ANOMALYTRANSFORMER(BaseModel):
 
 
 
-
-                score.append(anomaly_score.mean().detach().cpu())
+                score.append(anomaly_score.sum(dim=-1).sum(dim=-1).detach().cpu())
 
 
             score = torch.concatenate(score, dim=0).numpy()

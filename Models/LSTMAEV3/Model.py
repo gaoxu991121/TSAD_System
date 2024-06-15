@@ -55,7 +55,7 @@ class LSTMAEV3(nn.Module):
 
         return x_hat
 
-    def processData(self,data_train,data_test,shuffle = False):
+    def processData(self,data,shuffle = False):
         """
             对数据进行的预处理
             注意输出类型为可以直接送入训练的data_loader或张量
@@ -65,29 +65,27 @@ class LSTMAEV3(nn.Module):
 
         """
 
-
         # window_size = self.config["window_size"]
         batch_size = self.config["batch_size"]
 
-        # data_train = convertToWindow(data = data_train, window_size = window_size)
-        # data_test = convertToWindow(data = data_test, window_size = window_size)
+        data = data[:,np.newaxis,:]
 
-        data_train = data_train[:,np.newaxis,:]
-        data_test = data_test[:,np.newaxis,:]
 
         if shuffle:
-            data_train = self.shuffle(data_train)
+            data = self.shuffle(data)
 
-        train_dataset = TensorDataset(torch.tensor(data_train).float())
-        test_dataset = TensorDataset(torch.tensor(data_test).float())
-
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False,drop_last=True,num_workers=8)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,drop_last=True,num_workers=8)
-
-        return (train_loader,test_loader)
+        dataset = TensorDataset(torch.tensor(data).float())
 
 
-    def fit(self,train_loader,write_log = False):
+        dataloader = DataLoader(dataset, batch_size=batch_size)
+
+
+        return dataloader
+
+
+    def fit(self,train_data,write_log = False):
+
+        train_loader = self.processData(train_data)
 
         self.train()
         lr = self.config["learning_rate"]
@@ -139,13 +137,13 @@ class LSTMAEV3(nn.Module):
 
 
 
-    def test(self,test_dataloader):
+    def test(self,test_data):
         """
              在测试集上进行测试，输出的是归一到[0,1]的numpy数组类型的异常得分
-             :param test_dataloader: 测试数据
+             :param test_data: 测试数据
 
         """
-
+        test_dataloader = self.processData(test_data)
 
         self.eval()
         score = []
