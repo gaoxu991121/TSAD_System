@@ -1,0 +1,15 @@
+{
+  "NASA": {
+    "M-1": {
+      "window_size": 100,
+      "kernel": "rbf",
+      "gamma": "auto",
+      "degree": 3,
+      "coef0": 0.0,
+      "tol": 0.001,
+      "cache_size": 200,
+      "shrinking": true,
+      "nu": 0.48899475599830133
+    }
+  }
+}

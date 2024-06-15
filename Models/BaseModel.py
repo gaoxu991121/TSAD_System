@@ -36,7 +36,7 @@ class BaseModel(nn.Module):
         return data
 
 
-    def getThreshold(self):
+    def getThreshold(self,*args):
         threshold = 0.5
         if self.config["threshold"] != None:
             threshold = self.config["threshold"]
@@ -110,6 +110,7 @@ class BaseModel(nn.Module):
 
     def test(self,test_data):
         pass
+
 
     def processData(self, data, shuffle=False):
         """

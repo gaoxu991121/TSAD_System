@@ -1,0 +1,32 @@
+{
+  "NASA": {
+    "M-1": {
+      "hidden_size": 80,
+      "latent_size": 14,
+      "window_size": 60,
+      "threshold": 0.5,
+      "batch_size": 64,
+      "num_layers": 2,
+      "num_heads": 5,
+      "drop_out_rate": 0.1,
+      "input_size": 55,
+      "epoch": 1,
+      "lambda": 0.1
+
+    },
+    "A-6": {
+      "hidden_size": 80,
+      "latent_size": 14,
+      "window_size": 60,
+      "threshold": 0.5,
+      "batch_size": 64,
+      "num_layers": 2,
+      "num_heads": 5,
+      "drop_out_rate": 0.1,
+      "input_size": 25,
+      "epoch": 1,
+      "lambda": 0.1
+
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "NASA": {
+    "M-1": {
+      "hidden_size": 5,
+      "patience": 10,
+      "window_size": 100,
+      "batch_size": 256,
+      "input_size": 55,
+      "epoch": 100,
+      "learning_rate": 0.001
+    }
+  }
+}
