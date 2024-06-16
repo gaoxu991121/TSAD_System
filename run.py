@@ -17,14 +17,14 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="ANOMALYTRANSFORMER", help='name of model')
+    parser.add_argument('--model_name', type=str, default="UAE", help='name of model')
     parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
     parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
     parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
 
     parser.add_argument('--channels', type=int, default=55, help="nums of dimension for time series")
 
-    parser.add_argument('--epoch', type=int, default=1, help="num of training epoches")
+    parser.add_argument('--epoch', type=int, default=30, help="num of training epoches")
     parser.add_argument('--learning_rate', type=float, default=0.001, help="value of learning rate")
     parser.add_argument('--batch_size', type=int, default=128, help="batch size of data")
     parser.add_argument('--shuffle', type=bool, default=False, help="whether do shuffle by time window")
@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
     #get model
     model = getModel(config=config).to(device)
-
+    print("model:",model)
 
     shuffle = config["shuffle"]
 
@@ -106,22 +106,25 @@ if __name__ == '__main__':
 
     #train model
     model.fit(train_data= data_train,write_log=True)
-    print(model.predict(data_test,label))
+    print(model.predictEvaluate(data_test, label))
     #get anomaly score
+    # model.setThreshold(data_train,data_test,label)
     anomaly_scores = model.test(data_test)
-    print(anomaly_scores)
+    print("anomaly score:",anomaly_scores)
     #predict anomaly based on the threshold
     threshold = model.getThreshold()
+
     predict_labels =  model.decide(anomaly_score=anomaly_scores,threshold=threshold,ground_truth_label=label)
+    result = model.predictEvaluate(test_data=data_test, label = label, protocol ="apa" )
+    # print(result)
 
-
-    #evaluate
-    f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label,threshold=threshold,write_log=False)
-
-
-    predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 25,ground_truth_label=label,save_plot=True)
-    print("f1-score:", f1)
-
+    # #evaluate
+    # f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label,threshold=threshold,write_log=False)
+    #
+    #
+    # predict_labels,f1,threshold = model.getBestPredict(anomaly_score=anomaly_scores,n_thresholds = 25,ground_truth_label=label,save_plot=True)
+    # print("f1-score:", f1)
+    #
     #visualization
     plot_yaxis = []
     plot_yaxis.append(anomaly_scores)

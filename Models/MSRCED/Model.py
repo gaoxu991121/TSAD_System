@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 
 from Models.BaseModel import BaseModel
+from Preprocess.Normalization import minMaxScaling
 from Preprocess.Window import convertToWindow
 from Utils.EvalUtil import findSegment
 from Utils.LogUtil import wirteLog
@@ -109,7 +110,8 @@ class ConvLSTM(nn.Module):
 
 class MSRCED(BaseModel):
     def __init__(self, config):
-        super(MSRCED).__init__()
+        super(MSRCED,self).__init__()
+
         self.config: dict = config
 
         self.epoch: int = self.config["epoch"]
@@ -137,6 +139,8 @@ class MSRCED(BaseModel):
         self.Deconv1 = nn.ConvTranspose2d(in_channels=64, out_channels=3, kernel_size=3, stride=1, padding=1)
 
         self.device = self.config["device"]
+
+        self.train_reconstr_scores = []
 
     def forward(self, x):
         """
@@ -167,22 +171,23 @@ class MSRCED(BaseModel):
 
         return x_rec
 
-    def processData(self, data_train, data_test, shuffle=False):
+    def processData(self, data, shuffle=False):
         window_size = self.config["window_size"]
         batch_size = self.config["batch_size"]
 
-        data_train = convertToWindow(data=data_train, window_size=window_size)
-        data_test = convertToWindow(data=data_test, window_size=window_size)
+        data = convertToWindow(data=data, window_size=window_size)
+
         if shuffle:
-            data_train = self.shuffle(data_train)
+            data = self.shuffle(data)
 
-        train_dataset = TensorDataset(torch.tensor(data_train).float())
-        test_dataset = TensorDataset(torch.tensor(data_test).float())
+        data = self.create_signature_matrices(data)
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
 
-        return train_loader, (train_loader, test_loader)
+        dataset = TensorDataset(torch.tensor(data).float())
+
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+        return data_loader
 
     def create_signature_matrices(self, sequences):
         n_dim = sequences.shape[2]
@@ -207,20 +212,31 @@ class MSRCED(BaseModel):
         for ep in range(self.epoch):
             train_loss = []
             for ts_batch in train_loader:
+                ts_batch = ts_batch[0]
                 ts_batch = ts_batch.float().to(self.device)
                 output = self.forward(ts_batch)
-                loss = nn.MSELoss(reduction="mean")(output, ts_batch)
+
+                loss = nn.MSELoss(reduction="mean")(output, ts_batch[:, :, -1, :, :])
                 # 反向传播
+                print("loss:",loss)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 # 乘以batch长度以纠正不完整batch的计算
                 train_loss.append(loss.item() * len(ts_batch))
 
+                # 恢复为原始数据的格式
+                error = nn.L1Loss(reduction='none')(output, ts_batch[:, :, -1, :, :])
+                self.train_reconstr_scores.append(error.cpu().detach().numpy())
+
+
+
             scheduler.step()
             train_loss = np.mean(train_loss) / train_loader.batch_size
             train_loss_by_epoch.append(train_loss)
             print(f'train epoch [{ep}/{self.epoch}],\t loss = {train_loss}')
+
+
 
         identifier = self.config["identifier"]
         if write_log:
@@ -229,59 +245,71 @@ class MSRCED(BaseModel):
     @torch.no_grad()
     def test(self, test_data):
         """
-        test_dataloader包含训练集和测试集，train_loaders和test_loaders中每个通道对应一个dataloader
+
         """
-        train_loader, test_loader = tuple(test_dataloader)
+        test_loader = self.processData(test_data)
+
         self.eval()
-        train_reconstr_scores = []
+
         test_reconstr_scores = []
         ts_batch = None
         # 测试
         for ts_batch in test_loader:
+            ts_batch = ts_batch[0]
             ts_batch = ts_batch.float().to(self.device)
-            output = self.forward(ts_batch)[:, -1]
+            output = self.forward(ts_batch)
             # 恢复为原始数据的格式
             error = nn.L1Loss(reduction='none')(output, ts_batch[:, :, -1, :, :])
             test_reconstr_scores.append(error.cpu().detach().numpy())
 
         test_reconstr_scores = np.concatenate(test_reconstr_scores)
 
-        for ts_batch in train_loader:
-            ts_batch = ts_batch.float().to(self.device)
-            output = self.forward(ts_batch)[:, -1]
-            # 恢复为原始数据的格式
-            error = nn.L1Loss(reduction='none')(output, ts_batch[:, :, -1, :, :])
-            train_reconstr_scores.append(error.cpu().detach().numpy())
 
-        train_reconstr_scores = np.concatenate(train_reconstr_scores)
+        train_reconstr_scores = np.concatenate(self.train_reconstr_scores)
 
-        # 填充第一个sequence前的空位
-        multivar = (len(test_reconstr_scores.shape) > 1)
-        if multivar:
-            padding = np.zeros((len(ts_batch[0]) - 1, test_reconstr_scores.shape[-1]))
-        else:
-            padding = np.zeros(len(ts_batch[0]) - 1)
 
-        error_tc_train = np.concatenate([padding, train_reconstr_scores]).reshape((-1))
-        error_tc_test = np.concatenate([padding, test_reconstr_scores]).reshape((-1))
+        # # 填充第一个sequence前的空位
+        # multivar = (len(test_reconstr_scores.shape) > 1)
+        # if multivar:
+        #     padding = np.zeros((len(ts_batch[0]) - 1, test_reconstr_scores.shape[-1]))
+        # else:
+        #     padding = np.zeros(len(ts_batch[0]) - 1)
+        #
+        # error_tc_train = np.concatenate([padding, train_reconstr_scores]).reshape((-1))
+        # error_tc_test = np.concatenate([padding, test_reconstr_scores]).reshape((-1))
 
         # 计算异常分数
-        distr_params = [self.__fit_univar_gaussian_distr(error_tc_train[:, i]) for i in range(error_tc_train.shape[1])]
-        test_prob_scores = -1 * np.concatenate([self.__get_channel_probas(error_tc_test[:, i].reshape(-1, 1), distr_params[i]) for i in range(error_tc_test.shape[1])], axis=1)
-        score_t_test = np.sum(test_prob_scores, axis=1)
+        distr_params = [self.__fit_univar_gaussian_distr(train_reconstr_scores[:, i]) for i in range(train_reconstr_scores.shape[1])]
+        test_prob_scores = -1 * np.concatenate([self.__get_channel_probas(test_reconstr_scores[:, i].reshape(-1, 1), distr_params[i]) for i in range(test_reconstr_scores.shape[1])], axis=1)
+        score = np.sum(test_prob_scores, axis=1)
 
+        score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+
+        return score
+
+
+    def predictEvaluate(self, test_data, label, protocol=""):
+        anomaly_scores = self.test(test_data)
+        self.setThreshold(score = anomaly_scores,label = label)
+        # predict anomaly based on the threshold
+        threshold = self.getThreshold()
+        predict_labels = self.decide(anomaly_score=anomaly_scores, threshold=threshold, ground_truth_label=label,
+                                     protocol=protocol)
+
+        # evaluate
+        f1 = self.evaluate(predict_label=predict_labels, ground_truth_label=label, threshold=threshold, write_log=False)
+        return f1
+
+
+    def setThreshold(self,**kwargs):
         # 计算异常阈值
+        label = kwargs["label"]
+        score = kwargs["score"]
         test_anom_frac = (np.sum(label)) / len(label)
-        threshold = np.nanpercentile(score_t_test, 100 * (1 - test_anom_frac), interpolation='higher')
-        predict_label = np.where(score_t_test > threshold, 1, 0)
+        self.threshold = np.nanpercentile(score, 100 * (1 - test_anom_frac), interpolation='higher')
 
-        anomaly_segments = findSegment(labels=label)
-        pa_predict_label = pa(predict_label, anomaly_segments)
-        apa_predict_label = apa(predict_label, anomaly_segments)
 
-        pa_f1 = self.evaluate(predict_label=pa_predict_label, ground_truth_label=label, threshold=threshold, write_log=False)
-        apa_f1 = self.evaluate(predict_label=apa_predict_label, ground_truth_label=label, threshold=threshold, write_log=False)
-        return apa_f1, pa_f1
+
 
     @staticmethod
     def __fit_univar_gaussian_distr(scores_arr: np.ndarray):

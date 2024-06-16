@@ -9,7 +9,7 @@
       "num_layers": 2,
       "drop_out_rate": 0.3,
       "input_size": 55,
-      "epoch": 50
+      "epoch": 1
     }
   }
 }

@@ -67,7 +67,8 @@ class FCAE(BaseModel):
         scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
         for ep in range(self.epoch):
             train_loss = []
-            for ts_batch in train_loader:
+            for (ts_batch) in train_loader:
+
                 ts_batch = ts_batch.float().to(self.device)
                 output = self.forward(ts_batch)
                 loss = nn.MSELoss(reduction="mean")(output, ts_batch)
@@ -97,7 +98,7 @@ class FCAE(BaseModel):
         test_reconstr_scores = []
         ts_batch = None
         # 测试
-        for ts_batch in test_loader:
+        for (ts_batch) in test_loader:
             ts_batch = ts_batch.float().to(self.device)
             output = self.forward(ts_batch)[:, -1]
             # 恢复为原始数据的格式

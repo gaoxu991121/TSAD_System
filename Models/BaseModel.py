@@ -15,6 +15,7 @@ from Utils.ProtocolUtil import pa, apa
 class BaseModel(nn.Module):
     def __init__(self):
         super(BaseModel,self).__init__()
+        self.threshold = 0.5
 
     def shuffle(self,data,dim = 1):
         '''
@@ -35,13 +36,15 @@ class BaseModel(nn.Module):
             data = data[:,indices,:]
         return data
 
+    def setThreshold(self,**kwargs):
+        self.threshold = 0.5
+        if self.config["threshold"]:
+            self.threshold = self.config["threshold"]
 
-    def getThreshold(self,*args):
-        threshold = 0.5
-        if self.config["threshold"] != None:
-            threshold = self.config["threshold"]
 
-        return threshold
+    def getThreshold(self):
+
+        return self.threshold
 
 
 
@@ -134,7 +137,7 @@ class BaseModel(nn.Module):
 
         return dataloader
 
-    def decide(self, anomaly_score, threshold, ground_truth_label=[], protocol="apa"):
+    def decide(self, anomaly_score, threshold, ground_truth_label=[], protocol=""):
         """
                    根据异常得分以及阈值输出预测结果，在此函数内调用评估协议或其他处理
                    :param anomaly_score: 异常得分
@@ -155,7 +158,7 @@ class BaseModel(nn.Module):
 
         return predict_label
 
-    def predict(self, test_data,label,protocol = ""):
+    def predictEvaluate(self, test_data, label, protocol =""):
         anomaly_scores = self.test(test_data)
 
         # predict anomaly based on the threshold
@@ -166,7 +169,15 @@ class BaseModel(nn.Module):
         f1 = self.evaluate(predict_label=predict_labels, ground_truth_label=label,threshold=threshold,write_log=False)
         return f1
 
+    def predict(self, test_data):
+        anomaly_scores = self.test(test_data)
+        self.setThreshold()
+        # predict anomaly based on the threshold
+        threshold = self.getThreshold()
+        predict_labels = self.decide(anomaly_score=anomaly_scores, threshold=threshold)
 
+
+        return predict_labels
 
     def getBestPredict(self,anomaly_score,n_thresholds = 25, ground_truth_label=[], protocol="apa",save_plot = False):
 

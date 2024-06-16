@@ -390,12 +390,12 @@ class BeatGAN(BaseModel):
         validate by auc value
         :return: auc
         '''
-        y_, y_pred = self.predict(self.dataloader["val"])
+        y_, y_pred = self.predictEvaluate(self.dataloader["val"])
         rocprc, rocauc, best_th, best_f1 = evaluate(y_, y_pred)
         return rocauc, best_th, best_f1
 
 
-    def predict(self, dataloader_, scale=True):
+    def predictEvaluate(self, dataloader_, scale=True):
         with torch.no_grad():
 
             self.an_scores = torch.zeros(size=(len(dataloader_.dataset),), dtype=torch.float32, device=self.device)
