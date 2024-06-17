@@ -17,14 +17,14 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="NASALSTM", help='name of model')
+    parser.add_argument('--model_name', type=str, default="OCSVM", help='name of model')
     parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
     parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
     parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")
 
     parser.add_argument('--channels', type=int, default=55, help="nums of dimension for time series")
 
-    parser.add_argument('--epoch', type=int, default=1, help="num of training epoches")
+    parser.add_argument('--epoch', type=int, default=20, help="num of training epoches")
     parser.add_argument('--learning_rate', type=float, default=0.001, help="value of learning rate")
     parser.add_argument('--batch_size', type=int, default=128, help="batch size of data")
     parser.add_argument('--shuffle', type=bool, default=False, help="whether do shuffle by time window")

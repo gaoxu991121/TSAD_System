@@ -43,7 +43,8 @@ class NASALSTM(BaseModel):
 
 
         self.epoch = self.config["epoch"]
-        self.input_size = 1
+
+        self.input_size = self.config["input_size"]
         self.hidden_size = self.config["hidden_size"]
         self.num_layers = self.config["num_layers"]
         self.drop_out_rate = self.config["drop_out_rate"]
@@ -77,16 +78,17 @@ class NASALSTM(BaseModel):
                 for ts_batch in train_loader:
                     ts_batch = ts_batch[0][:,:,channal_id]
                     ts_batch = ts_batch.float().unsqueeze(dim=-1).to(self.device)
-                    print("ts_batch shape:",ts_batch.shape)
+
                     output = model(ts_batch)
 
-                    print("output shape:",output.shape)
                     loss = nn.MSELoss(reduction="mean")(output, ts_batch)
 
                     # 反向传播
                     model.zero_grad()
                     loss.backward()
                     optimizer.step()
+
+                    train_loss.append(loss.detach())
 
 
                 train_loss = np.mean(train_loss) / train_loader.batch_size
@@ -114,20 +116,22 @@ class NASALSTM(BaseModel):
 
             for ts_batch in test_loader:
                 ts_batch = ts_batch[0][:, :, channal_id]
+
                 ts_batch = ts_batch.float().unsqueeze(dim=-1).to(self.device)
                 output = model(ts_batch)
                 # 恢复为原始数据的格式
-                error = nn.L1Loss(reduction='none')(output[:, -1], ts_batch[:, -1])
+                error = nn.L1Loss(reduction='none')(output[:, -1], ts_batch[:, -1]).squeeze()
+
                 test_reconstr_scores.append(error.cpu().detach().numpy())
 
 
-            score.append(test_reconstr_scores)
+            score.append(np.concatenate(test_reconstr_scores))
 
-        score = np.array(score)
-        print("score shape:",score.shape)
+        score = np.stack(score,axis=1)
+
 
         score = np.sum(score, axis=1)
-        print("score 2 shape:",score.shape)
+
         score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
         return score
 

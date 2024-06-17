@@ -1,0 +1,8 @@
+{
+  "NASA": {
+    "M-1": {
+      "input_size": 55,
+       "explained_var": 0.9
+    }
+  }
+}

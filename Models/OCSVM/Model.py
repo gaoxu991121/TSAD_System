@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from scipy.stats import norm
-from sklearn import svm
-
+#from sklearn import svm
+from thundersvm import OneClassSVM
 from Models.BaseModel import BaseModel
 from Preprocess.Normalization import minMaxScaling
 from Preprocess.Window import convertToWindow
@@ -30,19 +30,25 @@ class OCSVM(BaseModel):
 
 
     def fit(self, train_data, write_log=False):
-
-        model = svm.OneClassSVM(kernel=self.kernel, degree=self.degree, gamma=self.gamma, coef0=self.coef0, tol=self.tol, nu=self.nu, shrinking=self.shrinking,
+        train_loader = self.processData(train_data)
+        train_sequences = train_loader.reshape(train_loader.shape[0], -1)
+        model = OneClassSVM(kernel=self.kernel, degree=self.degree, gamma=self.gamma, coef0=self.coef0, tol=self.tol,
+                            nu=self.nu, shrinking=self.shrinking,
                             cache_size=self.cache_size, max_iter=-1, verbose=False)
-        model.fit(train_data)
+        model.fit(train_sequences)
         self.model = model
 
     @torch.no_grad()
     def test(self, test_data):
+        test_dataloader = self.processData(test_data)
 
-        predict = self.model.predict(test_data)
+        padding = np.zeros(self.window_size - 1)
 
-
-        score = -predict
+        sequences = test_dataloader.reshape(test_dataloader.shape[0], -1)
+        score = self.__convert_pred(self.model.predict(sequences).reshape(-1))
+        score = np.concatenate([padding, score])
+        print("score shape:",score.shape)
+        # score = -predict
         score =  minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
 
         return score
