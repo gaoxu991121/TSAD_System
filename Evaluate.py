@@ -575,9 +575,10 @@ def evalOneDataset(dataset_name):
                       threshold=None)
 
         config["anomaly_score"] = anomaly_scores
-        config["ori_predict_labels"] = ori_predict_labels
-        config["pa_predict_labels"] = pa_predict_labels
-        config["apa_predict_labels"] = apa_predict_labels
+
+        config["ori_predict_labels"] = ori_predict_labels.tolist()
+        config["pa_predict_labels"] = pa_predict_labels.tolist()
+        config["apa_predict_labels"] = apa_predict_labels.tolist()
 
         config["ori_f1"] = ori_f1
         config["apa_f1"] = apa_f1
