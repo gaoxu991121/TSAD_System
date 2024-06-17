@@ -108,9 +108,9 @@ class ConvLSTM(nn.Module):
         return outputs, (x, new_c)
 
 
-class MSRCED(BaseModel):
+class MSCRED(BaseModel):
     def __init__(self, config):
-        super(MSRCED,self).__init__()
+        super(MSCRED,self).__init__()
 
         self.config: dict = config
 
@@ -306,7 +306,6 @@ class MSRCED(BaseModel):
         score = kwargs["score"]
         test_anom_frac = (np.sum(label)) / len(label)
         self.threshold = np.nanpercentile(score, 100 * (1 - test_anom_frac), interpolation='higher')
-
 
 
 

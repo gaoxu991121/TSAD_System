@@ -17,7 +17,7 @@ def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 
     parser.add_argument('--random_seed', type=int, default=42, help='random seed')
-    parser.add_argument('--model_name', type=str, default="MSRCED", help='name of model')
+    parser.add_argument('--model_name', type=str, default="MSCRED", help='name of model')
     parser.add_argument('--dataset', type=str, default="NASA", help="name of dataset,like 'NASA'")
     parser.add_argument('--filename', type=str, default="M-1", help="file-name of time series ")
     parser.add_argument('--filetype', type=str, default="npy", help="file-type of time series")

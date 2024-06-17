@@ -88,7 +88,7 @@ class NASALSTM(BaseModel):
                     loss.backward()
                     optimizer.step()
 
-                    train_loss.append(loss.detach())
+                    train_loss.append(loss.detach().cpu())
 
 
                 train_loss = np.mean(train_loss) / train_loader.batch_size
