@@ -189,7 +189,7 @@ class TCNAE(BaseModel):
 
                 loss = F.mse_loss(y, item[:,-1,:], reduction='none')
 
-                print("loss shape:",loss.sum(dim=-1).shape)
+
                 score.append(loss.sum(dim=-1).detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()
