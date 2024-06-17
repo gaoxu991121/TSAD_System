@@ -483,6 +483,8 @@ def getConfigs():
             "num_filters":3,
             "kernel_size":3,
 
+            "explained_var":0.9,
+
             "kernel": "rbf",
             "gamma": "auto",
             "degree": 3,
@@ -492,6 +494,15 @@ def getConfigs():
             "shrinking": True,
             "nu": 0.48899475599830133,
             "step_max": 5,
+
+            "n_trees": 100,
+            "max_samples": "auto",
+            "max_features": 1,
+            "bootstrap": False,
+            "random_state": 42,
+            "verbose": 0,
+            "n_jobs": 1,
+            "contamination": 0.5
 
         }
 
