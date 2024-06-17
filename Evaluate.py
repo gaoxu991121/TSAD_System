@@ -490,7 +490,6 @@ def getConfigs():
             "nu": 0.48899475599830133,
             "step_max": 5,
 
-
         }
 
 
@@ -514,7 +513,7 @@ def count_parameters(model):
 
 def evalOneDataset(dataset_name):
     config = getConfigs()
-    model_list = ["MSRCED","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","OCSVM"]
+    model_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","OCSVM","MSRCED"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
 

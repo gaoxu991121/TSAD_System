@@ -267,7 +267,6 @@ class MSRCED(BaseModel):
 
         train_reconstr_scores = np.concatenate(self.train_reconstr_scores)
 
-
         # # 填充第一个sequence前的空位
         # multivar = (len(test_reconstr_scores.shape) > 1)
         # if multivar:
