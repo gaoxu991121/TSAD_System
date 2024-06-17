@@ -574,7 +574,7 @@ def evalOneDataset(dataset_name):
                       segments=findSegment(label),
                       threshold=None)
 
-        config["anomaly_score"] = anomaly_scores
+        config["anomaly_score"] = anomaly_scores.tolist()
 
         config["ori_predict_labels"] = ori_predict_labels.tolist()
         config["pa_predict_labels"] = pa_predict_labels.tolist()
