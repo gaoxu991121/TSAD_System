@@ -92,7 +92,7 @@ class OmniAnomaly(BaseModel):
                 optimizer.zero_grad()
                 item = batch[0].to(self.device)
 
-                y_pred, mu, logvar, hidden = self.forward(item, hidden if i else None)
+                y_pred, mu, logvar, hidden = self.forward(item, hidden.to(self.device) if i else None)
 
                 MSE = l(y_pred, item).sum()
                 KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -135,8 +135,8 @@ class OmniAnomaly(BaseModel):
 
         with torch.no_grad():
             for i, batch in enumerate(test_loader):
-                item = batch[0]
-                y_pred, mu, logvar, hidden = self.forward(item, hidden if i else None)
+                item = batch[0].to(self.device)
+                y_pred, mu, logvar, hidden = self.forward(item, hidden.to(self.device) if i else None)
                 # 将张量拆分成 128 个形状为 (5,) 的张量
 
                 score.append(l(y_pred[:, -1, :], item[:, -1, :]).sum(dim=-1))

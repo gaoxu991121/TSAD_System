@@ -1,0 +1,17 @@
+{
+  "NASA": {
+    "M-1": {
+      "hidden_size": 80,
+      "latent_size": 14,
+      "window_size": 60,
+      "threshold": 0.5,
+      "batch_size": 64,
+      "num_layers": 2,
+      "drop_out_rate": 0.3,
+      "input_size": 55,
+      "num_filters": 3,
+      "kernel_size": 3,
+      "epoch": 1
+    }
+  }
+}
