@@ -55,7 +55,7 @@ class OmniAnomaly(BaseModel):
 
     def forward(self, x, hidden=None):
 
-        hidden = torch.rand(2, x.shape[0], self.hidden_size, dtype=torch.float64).float() if hidden is not None else hidden
+        hidden = torch.rand(2, x.shape[0], self.hidden_size, dtype=torch.float64).float().to(self.device) if hidden is not None else hidden
         out, hidden = self.lstm(x, hidden)
         ## Encode
         x = self.encoder(out)

@@ -588,7 +588,7 @@ def evalOneDataset(dataset_name):
         config["apa_threshold"] = apa_threshold
         config["pa_threshold"] = pa_threshold
         config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
-        wirteLog(config["base_path"] + "/Logs/" +dataset_name,"detail",config)
+        wirteLog(config["base_path"] + "/Logs/" +dataset_name,method + "-detail",config)
 
 
 
