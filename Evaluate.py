@@ -465,7 +465,7 @@ from importlib import import_module
 
 def getConfigs():
     config = {
-            "epoch": 1,
+            "epoch": 30,
             "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
@@ -527,7 +527,7 @@ def count_parameters(model):
 
 def evalOneDataset(dataset_name):
     config = getConfigs()
-    model_list = ['PCAAD',"IForestAD","UAE","TRANAD","OmniAnomaly","OCSVM","MSCRED","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE"]
+    model_list = ['PCAAD',"IForestAD","UAE","TRANAD","OmniAnomaly","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
 
