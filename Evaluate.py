@@ -479,7 +479,7 @@ def getConfigs():
             "mask": False,
             "lambda_energy": 0.1,
             "lambda_cov_diag": 0.005,
-
+            "num_filters":3,
             "kernel": "rbf",
             "gamma": "auto",
             "degree": 3,
