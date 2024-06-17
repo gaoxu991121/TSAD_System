@@ -231,7 +231,7 @@ class DAGMM(BaseModel):
 
                 score.append(loss.sum(dim=-1))
 
-        score = torch.concatenate(score, dim=0).numpy()
+        score = torch.concatenate(score, dim=0).detach().cpu().numpy()
         score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
 
         return score
