@@ -514,7 +514,7 @@ def count_parameters(model):
 
 def evalOneDataset(dataset_name):
     config = getConfigs()
-    model_list = ["OmniAnomaly","OCSVM","MSRCED","LSTMVAE","LSTMAE","LSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD"]
+    model_list = ["MSRCED","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","OCSVM"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
 
