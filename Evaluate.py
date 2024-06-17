@@ -482,7 +482,7 @@ def getConfigs():
 
             "num_filters":3,
             "kernel_size":3,
-        
+
             "kernel": "rbf",
             "gamma": "auto",
             "degree": 3,
@@ -516,7 +516,7 @@ def count_parameters(model):
 
 def evalOneDataset(dataset_name):
     config = getConfigs()
-    model_list = ["TRANSFORMER","TCNAE",'PCA',"IForestAD","UAE","TRANAD","OmniAnomaly","OCSVM","MSCRED","LSTMVAE","LSTMAE","NASALSTM","DAGMM",]
+    model_list = ["TCNAE",'PCA',"IForestAD","UAE","TRANAD","OmniAnomaly","OCSVM","MSCRED","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
 
