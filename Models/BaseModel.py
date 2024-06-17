@@ -179,7 +179,7 @@ class BaseModel(nn.Module):
 
         return predict_labels
 
-    def getBestPredict(self,anomaly_score,n_thresholds = 25, ground_truth_label=[], protocol="apa",save_plot = False):
+    def getBestPredict(self,anomaly_score,n_thresholds = 25, ground_truth_label=[], protocol="apa"):
 
         # 平均划分出n_thresholds个阈值
         thresholds = np.linspace(np.min(anomaly_score), np.max(anomaly_score), num=n_thresholds)
@@ -210,6 +210,6 @@ class BaseModel(nn.Module):
         best_predict_label = self.decide(anomaly_score,best_threshold,ground_truth_label,protocol)
 
         f1_best = self.evaluate(best_predict_label,ground_truth_label,best_threshold,write_log=False)
-        print(f1_best)
+
 
         return best_predict_label,f1_best,best_threshold
