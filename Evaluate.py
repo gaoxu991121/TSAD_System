@@ -465,7 +465,7 @@ from importlib import import_module
 
 def getConfigs():
     config = {
-            "epoch": 10,
+            "epoch": 1,
             "batch_size": 128,
             "window_size": 60,
             "identifier": "model-evaluation",
@@ -512,7 +512,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def evalOneDataset(dataset_name,input_dim):
+def evalOneDataset(dataset_name):
     config = getConfigs()
     model_list = ["UAE","TRANAD","OmniAnomaly","OCSVM","MSRCED","LSTMVAE","LSTMAE","LSTM","DAGMM","TRANSFORMER"]
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -520,6 +520,7 @@ def evalOneDataset(dataset_name,input_dim):
 
     data_train,data_test,label = readData(dataset_path = base_path + "/Data/"+dataset_name ,filename = dataset_name,file_type = "csv")
 
+    input_dim = data_train.shape[-1]
 
     config["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config["base_path"] = base_path
@@ -528,6 +529,7 @@ def evalOneDataset(dataset_name,input_dim):
     for method in model_list:
         config["model_name"] = method
 
+        print("training method:",method)
 
         model = getModel(config)
 
@@ -537,6 +539,8 @@ def evalOneDataset(dataset_name,input_dim):
         # train model
         model.fit(train_data = data_train,write_log=True)
         config["train_end_time"] = time.time()
+
+        print("finish training method:",method," cost time:",config["train_end_time"] - config["train_start_time"])
 
         config["test_start_time"] = time.time()
         anomaly_scores = model.test(data_test)
@@ -553,6 +557,7 @@ def evalOneDataset(dataset_name,input_dim):
                                                                       ground_truth_label=label,
                                                                       protocol="pa")
 
+        print("finish evaluating method:", method)
         # visualization
         plot_yaxis = []
         plot_yaxis.append(anomaly_scores)
@@ -590,16 +595,20 @@ def evalOneDataset(dataset_name,input_dim):
 
 
 def evaluateAllDaset():
-    datasets = []
+    datasets = ["DMDS","PMS"]
     print("start evaluating all")
-    for dataset_name,input_dim in datasets:
-        evalOneDataset(dataset_name, input_dim)
+    for dataset_name in datasets:
+        evalOneDataset(dataset_name)
 
     print("finish evaluating all")
 
 if __name__ == '__main__':
+
     evaluateAllDaset()
 
+    # dataset_name = "SWAT"
+    # data_train,data_test,label = readData(dataset_path = "./Data/"+dataset_name ,filename = dataset_name,file_type = "csv")
+    # print("data_train_shape:",data_train.shape)
     
     # configs = getConfigs()
     #
