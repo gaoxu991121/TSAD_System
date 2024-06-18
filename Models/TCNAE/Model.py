@@ -118,7 +118,7 @@ class TCNAE(BaseModel):
 
         x = self.residual_blocks(x)
 
-        return x[:, -1, :]
+        return x
 
 
 
@@ -143,7 +143,7 @@ class TCNAE(BaseModel):
 
                 y = self.forward(item)
 
-                loss = F.mse_loss(y, item[:,-1,:], reduction='sum')
+                loss = F.mse_loss(y, item, reduction='sum')
 
 
                 l1s.append(torch.mean(loss).item())
@@ -186,10 +186,10 @@ class TCNAE(BaseModel):
 
                 y = self.forward(item)
 
-                loss = F.mse_loss(y, item[:,-1,:], reduction='none')
+                loss = F.mse_loss(y, item, reduction='none')
 
 
-                score.append(loss.sum(dim=-1).detach().cpu())
+                score.append(loss.sum(dim=-1).sum(dim=-1).detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()
 

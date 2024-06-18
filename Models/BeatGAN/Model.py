@@ -140,7 +140,7 @@ class Discriminator(nn.Module):
 
     def __init__(self, config):
         super(Discriminator, self).__init__()
-        model = Encoder(config.ngpu,config,1)
+        model = Encoder(config,1)
         layers = list(model.main.children())
 
         self.features = nn.Sequential(*layers[:-1])
@@ -163,8 +163,8 @@ class Generator(nn.Module):
 
     def __init__(self, config):
         super(Generator, self).__init__()
-        self.encoder1 = Encoder(config.ngpu,config,config.nz)
-        self.decoder = Decoder(config.ngpu,config)
+        self.encoder1 = Encoder(config,config.nz)
+        self.decoder = Decoder(config)
 
     def forward(self, x):
         latent_i = self.encoder1(x)
@@ -183,7 +183,7 @@ class BeatGAN(BaseModel):
         self.device = config["device"]
         self.config = config
 
-        self.batchsize = config.batchsize
+        self.batch_size = config["batch_size"]
         self.nz = config.nz
         self.epoch = config.epoch
 
@@ -204,12 +204,12 @@ class BeatGAN(BaseModel):
         self.total_steps = 0
         self.cur_epoch = 0
 
-        self.input = torch.empty(size=(self.config.batchsize, self.config.nc, self.config.isize), dtype=torch.float32,
+        self.input = torch.empty(size=(self.config.batch_size, self.config.nc, self.config.isize), dtype=torch.float32,
                                  device=self.device)
-        self.label = torch.empty(size=(self.config.batchsize,), dtype=torch.float32, device=self.device)
+        self.label = torch.empty(size=(self.config.batch_size,), dtype=torch.float32, device=self.device)
 
-        self.gt = torch.empty(size=(config.batchsize,), dtype=torch.long, device=self.device)
-        self.fixed_input = torch.empty(size=(self.config.batchsize, self.config.nc, self.config.isize), dtype=torch.float32,
+        self.gt = torch.empty(size=(config.batch_size,), dtype=torch.long, device=self.device)
+        self.fixed_input = torch.empty(size=(self.config.batch_size, self.config.nc, self.config.isize), dtype=torch.float32,
                                        device=self.device)
         self.real_label = 1
         self.fake_label = 0
@@ -235,7 +235,8 @@ class BeatGAN(BaseModel):
 
         train_dataloader = self.processData(train_data)
 
-
+        BCELoss = nn.BCELoss()
+        MSELoss = nn.MSELoss()
 
         for epoch in range(self.epoch):
             self.cur_epoch += 1
@@ -245,54 +246,42 @@ class BeatGAN(BaseModel):
             epoch_iter = 0
             for data in train_dataloader:
                 data = data[0]
-
-                self.total_steps += self.config.batchsize
+                self.y_real_, self.y_fake_ = torch.ones(self.batch_size).to(self.device), torch.zeros(self.batch_size).to(
+                    self.device)
                 epoch_iter += 1
 
                 ##
                 self.D.zero_grad()
                 # --
                 # Train with real
-                label.data.resize_(self.config.batchsize).fill_(self.real_label)
 
-                out_d_real,feat_real = self.D(data)
-                # --
+
+                out_d_real, _ = self.D(data)
                 # Train with fake
-                self.label.data.resize_(self.config.batchsize).fill_(self.fake_label)
-                self.fake, self.latent_i = self.G(self.input)
-                self.out_d_fake, self.feat_fake = self.D(self.fake)
-                # --
+                fake = self.G(data)
+                out_d_fake, _ = self.D(fake)
 
-                self.err_d_real = self.bce_criterion(self.out_d_real,
-                                                     torch.full((self.batchsize,), self.real_label, device=self.device))
-                self.err_d_fake = self.bce_criterion(self.out_d_fake,
-                                                     torch.full((self.batchsize,), self.fake_label, device=self.device))
+                error_real = BCELoss(out_d_real, self.y_real_)
+                error_fake = BCELoss(out_d_fake, self.y_fake_)
 
-                self.err_d = self.err_d_real + self.err_d_fake
-                self.err_d.backward()
-                self.configimizerD.step()
+                error_discrimtor = error_real + error_fake
+                error_discrimtor.backward(retain_graph=True)
 
+                self.optimizerD.step()
 
-                # update G
                 self.G.zero_grad()
-                self.label.data.resize_(self.config.batchsize).fill_(self.real_label)
-                self.fake, self.latent_i = self.G(self.input)
-                self.out_g, self.feat_fake = self.D(self.fake)
-                _, self.feat_real = self.D(self.input)
 
-                # self.err_g_adv = self.bce_criterion(self.out_g, self.label)   # loss for ce
-                self.err_g_adv = self.mse_criterion(self.feat_fake, self.feat_real)  # loss for feature matching
-                self.err_g_rec = self.mse_criterion(self.fake, self.input)  # constrain x' to look like x
+                _, feat_fake = self.D(fake)
+                _, feat_real = self.D(data)
 
-                self.err_g = self.err_g_rec + self.err_g_adv * self.config.w_adv
-                self.err_g.backward()
-                self.configimizerG.step()
+                err_g_adv = MSELoss(feat_fake, feat_real)  # loss for feature matching
+                err_g_rec = MSELoss(fake, data)  # constrain x' to look like x
 
+                err_g = err_g_rec + 0.01 * err_g_adv
+                err_g.backward()
+                self.optimizerG.step()
 
-
-
-                errors = self.get_errors()
-
+                
 
 
 
@@ -305,7 +294,7 @@ class BeatGAN(BaseModel):
         self.gt.data.resize_(input[1].size()).copy_(input[1])
 
         # fixed input for view
-        if self.total_steps == self.config.batchsize:
+        if self.total_steps == self.config.batch_size:
             self.fixed_input.data.resize_(input[0].size()).copy_(input[0])
 
     ##
@@ -323,19 +312,19 @@ class BeatGAN(BaseModel):
         self.D.zero_grad()
         # --
         # Train with real
-        self.label.data.resize_(self.config.batchsize).fill_(self.real_label)
+        self.label.data.resize_(self.config.batch_size).fill_(self.real_label)
         self.out_d_real, self.feat_real = self.D(self.input)
         # --
         # Train with fake
-        self.label.data.resize_(self.config.batchsize).fill_(self.fake_label)
+        self.label.data.resize_(self.config.batch_size).fill_(self.fake_label)
         self.fake, self.latent_i = self.G(self.input)
         self.out_d_fake, self.feat_fake = self.D(self.fake)
         # --
 
         self.err_d_real = self.bce_criterion(self.out_d_real,
-                                             torch.full((self.batchsize,), self.real_label, device=self.device))
+                                             torch.full((self.batch_size,), self.real_label, device=self.device))
         self.err_d_fake = self.bce_criterion(self.out_d_fake,
-                                             torch.full((self.batchsize,), self.fake_label, device=self.device))
+                                             torch.full((self.batch_size,), self.fake_label, device=self.device))
 
         self.err_d = self.err_d_real + self.err_d_fake
         self.err_d.backward()
@@ -351,7 +340,7 @@ class BeatGAN(BaseModel):
     ##
     def update_netg(self):
         self.G.zero_grad()
-        self.label.data.resize_(self.config.batchsize).fill_(self.real_label)
+        self.label.data.resize_(self.config.batch_size).fill_(self.real_label)
         self.fake, self.latent_i = self.G(self.input)
         self.out_g, self.feat_fake = self.D(self.fake)
         _, self.feat_real = self.D(self.input)
@@ -385,54 +374,36 @@ class BeatGAN(BaseModel):
 
     ##
 
-    def validate(self):
-        '''
-        validate by auc value
-        :return: auc
-        '''
-        y_, y_pred = self.predictEvaluate(self.dataloader["val"])
-        rocprc, rocauc, best_th, best_f1 = evaluate(y_, y_pred)
-        return rocauc, best_th, best_f1
 
 
-    def predictEvaluate(self, dataloader_, scale=True):
+    def test(self, test_data):
+        
+        dataloader_ = self.processData(test_data)
+        self.eval()
+        score = []
         with torch.no_grad():
 
-            self.an_scores = torch.zeros(size=(len(dataloader_.dataset),), dtype=torch.float32, device=self.device)
-            self.gt_labels = torch.zeros(size=(len(dataloader_.dataset),), dtype=torch.long, device=self.device)
-            self.latent_i = torch.zeros(size=(len(dataloader_.dataset), self.config.nz), dtype=torch.float32,
-                                        device=self.device)
-            self.dis_feat = torch.zeros(size=(len(dataloader_.dataset), self.config.ndf * 16 * 10), dtype=torch.float32,
-                                        device=self.device)
-
             for i, data in enumerate(dataloader_, 0):
-                self.set_input(data)
-                self.fake, latent_i = self.G(self.input)
+                test_x = data[0].to(self.device)
 
-                # error = torch.mean(torch.pow((d_feat.view(self.input.shape[0],-1)-d_gen_feat.view(self.input.shape[0],-1)), 2), dim=1)
-                #
-                error = torch.mean(
-                    torch.pow((self.input.view(self.input.shape[0], -1) - self.fake.view(self.fake.shape[0], -1)), 2),
+
+                fake = self.G(test_x)
+
+                loss = torch.mean(
+                    torch.pow((test_x.view(test_x.shape[0], -1) - fake.view(fake.shape[0], -1)), 2),
                     dim=1)
 
-                self.an_scores[i * self.config.batchsize: i * self.config.batchsize + error.size(0)] = error.reshape(
-                    error.size(0))
-                self.gt_labels[i * self.config.batchsize: i * self.config.batchsize + error.size(0)] = self.gt.reshape(
-                    error.size(0))
-                self.latent_i[i * self.config.batchsize: i * self.config.batchsize + error.size(0), :] = latent_i.reshape(
-                    error.size(0), self.config.nz)
+                score.append(loss.detach().numpy().cpu())
 
-            # Scale error vector between [0, 1]
-            if scale:
-                self.an_scores = (self.an_scores - torch.min(self.an_scores)) / (
-                            torch.max(self.an_scores) - torch.min(self.an_scores))
+            score = torch.concatenate(score, dim=0).numpy()
 
-            y_ = self.gt_labels.cpu().numpy()
-            y_pred = self.an_scores.cpu().numpy()
+            score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1,
+                                      range_min=0)
 
-            return y_, y_pred
+        return score
 
-    def predict_for_right(self, dataloader_, min_score, max_score, threshold, save_dir):
+
+def predict_for_right(self, dataloader_, min_score, max_score, threshold, save_dir):
         '''
 
         :param dataloader:
@@ -461,7 +432,7 @@ class BeatGAN(BaseModel):
                     torch.pow((self.input.view(self.input.shape[0], -1) - self.fake.view(self.fake.shape[0], -1)), 2),
                     dim=1)
 
-                self.an_scores[i * self.config.batchsize: i * self.config.batchsize + error.size(0)] = error.reshape(
+                self.an_scores[i * self.config.batch_size: i * self.config.batch_size + error.size(0)] = error.reshape(
                     error.size(0))
 
                 # # Save test images.
