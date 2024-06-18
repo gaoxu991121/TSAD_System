@@ -103,7 +103,6 @@ class TCNAE(BaseModel):
         self.num_filters = self.config["num_filters"]
         self.kernel_size = self.config["kernel_size"]
 
-        self.lstm = nn.LSTM(input_size=self.input_size,hidden_size=self.hidden_size,num_layers=self.num_layers,batch_first=True)
         self.pre_len = 1
         self.dropout = nn.Dropout(self.drop_out_rate)
         self.fc = nn.Linear(self.hidden_size, 1)  # 1 是输出维度

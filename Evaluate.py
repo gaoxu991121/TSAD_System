@@ -467,7 +467,7 @@ def getConfigs():
     config = {
             "epoch": 30,
             "batch_size": 128,
-            "window_size": 60,
+            "window_size": 10,
             "identifier": "model-evaluation",
             "hidden_size": 64,
             "latent_size": 32,
@@ -527,7 +527,8 @@ def count_parameters(model):
 
 def evalOneDataset(dataset_name):
     config = getConfigs()
-    model_list = ['PCAAD',"IForestAD","UAE","TRANAD","OmniAnomaly","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE"]
+    # model_list = ['PCAAD',"IForestAD","UAE","TRANAD","OmniAnomaly","LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE"]
+    model_list = ['MSCRED']
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
 
