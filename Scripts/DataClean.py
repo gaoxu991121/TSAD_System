@@ -80,7 +80,7 @@ def cleanPMS():
 
 def cleanSKABTrain():
     path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\raw\anomaly-free\anomaly-free.csv"
-    train_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\train\skab"
+    train_path = r"/Data/SKAB/train/SKAB.csv"
     data = pd.read_csv(path,index_col="datetime",sep=";")
     data.to_csv(train_path, index=False, header=False)
 
@@ -102,15 +102,41 @@ def cleanSKABTest():
         test_data.drop('anomaly', axis=1, inplace=True)
         test_data.drop('changepoint', axis=1, inplace=True)
 
+        # "value1 0 time 2020-03-09 10:33:55"
+        # "value1 last time 2020-03-09 15:34:41"
+        #
+        # "value2 0 time 2020-03-09 15:56:30"
+        #
+        # "other first time 2020-03-01 15:44:06"
+        # "other last time 2020-02-08 19:16:28"
 
-
-
+        #other 14 - 23 , other 9 - 13 , value1 ,value2
         # 将 DataFrame 保存为 .csv 文件
         test_data.to_csv(folder_test + r"\other-"+file_name, index=False, header=False)
         label.to_csv(folder_label+ r"\other-"+file_name, index=False, header=False)
 
     print("文件批量转换完成！")
 
+
+def concactSKABTest():
+    fileholder_list = [r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\raw\other",r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\raw\other2",r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\raw\valve1",r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\raw\valve2"]
+    test_df = pd.DataFrame()
+    label_df = pd.DataFrame()
+
+    for fileholder in fileholder_list:
+        data_files = os.listdir(fileholder)
+        for data_name in data_files:
+            file_path = os.path.join(fileholder, data_name)
+            # 读取每个文件的数据到 DataFrame
+            df = pd.read_csv(file_path, index_col="datetime", sep=";")
+            label = df["anomaly"]
+            label_df = pd.concat([label_df, label], ignore_index=True)
+            df.drop('anomaly', axis=1, inplace=True)
+            df.drop('changepoint', axis=1, inplace=True)
+            test_df = pd.concat([test_df, df], ignore_index=True)
+
+    test_df.to_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\test\SKAB.csv", index=False, header=False)
+    label_df.to_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SKAB\label\SKAB.csv", index=False, header=False)
 
 def writeToWindows(datapath,savepath,filename,window_size=30):
     # get data
@@ -176,9 +202,11 @@ def makeDatasetToWindows(dataset_pair,window_size = 30):
             data_files = os.listdir(data_train_path)
 
             for data_name in data_files:
-                data_train_path = dataset_path + "/train/" + data_name + ".csv"
-                data_test_path = dataset_path + "/test/" + data_name + ".csv"
-                data_label_path = dataset_path + "/label/" + data_name + ".csv"
+
+                print("data_name:",data_name)
+                data_train_path = dataset_path + "/train/" + data_name
+                data_test_path = dataset_path + "/test/" + data_name
+                data_label_path = dataset_path + "/label/" + data_name
 
                 data_train = pd.read_csv(data_train_path, header=None).to_numpy()
                 data_test = pd.read_csv(data_test_path, header=None).to_numpy()
@@ -188,11 +216,21 @@ def makeDatasetToWindows(dataset_pair,window_size = 30):
                 test_window = convertToSlidingWindow(data_test, window_size=window_size)
                 label = label[window_size - 1:]
 
+                data_name = data_name.split(".")[0]
+
                 np.save(savepath_train + "/" + data_name + ".npy", train_window)
                 np.save(savepath_test + "/" + data_name + ".npy", test_window)
                 np.save(savepath_label + "/" + data_name + ".npy", label)
 
 
+if __name__ == '__main__':
+    pass
+    # concactSKABTest()
+    # datset_pair = [("WADI",True),("UCR",False),("SWAT",True),("SMD",False),("SMAP",False),("SKAB.csv",True),("PMS",True),("MSL",False),("DMDS",True)]
+    # datset_pair = [("UCR",False)]
+    # makeDatasetToWindows(datset_pair)
 
-
-
+    # data_train = pd.read_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\train\PMS.csv", header=None).to_numpy()
+    # print("data_train shape:",data_train.shape)
+    # data_window = np.load(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\window\train\PMS.npy")
+    # print("data_window shape:",data_window.shape)

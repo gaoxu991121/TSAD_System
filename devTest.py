@@ -16,7 +16,7 @@ import os
 import numpy as np
 import argparse
 
-from Utils.DistanceUtil import KLDivergence
+from Utils.DistanceUtil import KLDivergence, EuclideanDistance, MahalanobisDistance
 from Utils.EvalUtil import findSegment
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
@@ -224,22 +224,45 @@ if __name__ == '__main__':
 
 
     data = torch.tensor([[1.0, 2.0, 3.0], [4.0, 6.0, 6]])
-    data_2 = torch.tensor([[3.0, 2.0, 1.0], [4.0, 6.0, 6]])
-    data = F.softmax(data, dim=-1)
-    print(data)
+    data_2 = torch.tensor([[3.0, 2.0, 1.0], [4.0, 7.0, 6]])
+    # data = F.softmax(data, dim=-1)
+    # print(data)
+    # print(data.shape)
+    #
+    # data_2 = F.softmax(data_2, dim=-1)
+    # print(data_2)
+    #
+    # def test(p,q):
+    #     print("p:",p)
+    #     print("log sub:",(p.log() - q.log()))
+    #     loss_pointwise = p * (p.log() - q.log())
+    #     print("loss_pointwise:",loss_pointwise)
+    #     loss = loss_pointwise.sum(dim=-1).mean()
+    #     return loss
+    # print(test(data,data_2))
+    #
+    #
+    # data = data.numpy()
+    # data_2 = data_2.numpy()
+    # res = KLDivergence(data,data_2)
+    # print(res)
+
+    data = data.numpy()
+    data_2 = data_2.numpy()
     print(data.shape)
+    from scipy.spatial.distance import mahalanobis
 
-    data_2 = F.softmax(data_2, dim=-1)
-    print(data_2)
-
-    res = KLDivergence(data,data_2)
+    # sample_x = np.array([15,46,13])
+    # sample_y = np.array([11,9,35])
+    # x = np.array([data,data_2]).T
+    # print("x shape:",x.shape)
+    # # 算b与d马氏距离
+    # cov = np.cov(x)
+    # print("cov shape:",cov.shape)
+    # print(mahalanobis(data_2,data_2,cov))
+    #
+    # print(data - data_2)
+    res = MahalanobisDistance(data,data_2)
     print(res)
 
-    def test(p,q):
-        print("p:",p)
-        print("log sub:",(p.log() - q.log()))
-        loss_pointwise = p * (p.log() - q.log())
-        print("loss_pointwise:",loss_pointwise)
-        loss = loss_pointwise.sum(dim=-1).mean()
-        return loss
-    print(test(data,data_2))
+
