@@ -2,7 +2,9 @@ import numpy as np
 
 
 def convertToWindow(data, window_size):
-
+    """
+    stride为1，前window_size -1 个时间点的时间窗口，通过复制前面元素构成
+    """
     windows = []
 
     for i, g in enumerate(data):

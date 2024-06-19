@@ -2,6 +2,8 @@ import os
 import numpy as np
 import pandas as pd
 
+from Preprocess.Window import convertToSlidingWindow, convertToWindow
+from Utils.DataUtil import readData
 from Utils.EvalUtil import findSegment
 
 
@@ -109,4 +111,88 @@ def cleanSKABTest():
 
     print("文件批量转换完成！")
 
+
+def writeToWindows(datapath,savepath,filename,window_size=30):
+    # get data
+    data_train, data_test, label = readData(dataset_path=datapath,
+                                            filename=filename, file_type="csv")
+    #
+    print(data_train.shape)
+    #
+    # train_window = convertToWindow(data_train, window_size=window_size)
+    test_window = convertToSlidingWindow(data_test, window_size=window_size)
+    label = label[window_size-1:]
+    print(test_window.shape)
+    print(label.shape)
+
+
+
+
 # cleanSKABTest()
+
+# writeToWindows("../Data/PMS","","PMS")
+
+def makeDatasetToWindows(dataset_pair,window_size = 30):
+    for dataset,onlyone in dataset_pair:
+        dataset_path = "../Data/" + dataset
+
+
+
+        savepath_train = "../Data/" + dataset + "/window/train"
+        savepath_test = "../Data/" + dataset + "/window/test"
+        savepath_label = "../Data/" + dataset + "/window/label"
+        # 判断文件夹是否存在
+        if not os.path.exists(savepath_train):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(savepath_train)
+
+        if not os.path.exists(savepath_test):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(savepath_test)
+
+        if not os.path.exists(savepath_label):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(savepath_label)
+
+
+        if onlyone:
+            data_train_path = dataset_path + "/train/"+dataset+".csv"
+            data_test_path = dataset_path + "/test/"+dataset+".csv"
+            data_label_path = dataset_path + "/label/"+dataset+".csv"
+
+            data_train = pd.read_csv(data_train_path, header=None).to_numpy()
+            data_test = pd.read_csv(data_test_path, header=None).to_numpy()
+            label = pd.read_csv(data_label_path, header=None).to_numpy().squeeze()
+
+            train_window = convertToSlidingWindow(data_train, window_size=window_size)
+            test_window = convertToSlidingWindow(data_test, window_size=window_size)
+            label = label[window_size-1:]
+            np.save(savepath_train+"/"+dataset+".npy", train_window)
+            np.save(savepath_test+"/"+dataset+".npy", test_window)
+            np.save(savepath_label+"/"+dataset+".npy", label)
+
+        else:
+            data_train_path = dataset_path + "/train/"
+            data_files = os.listdir(data_train_path)
+
+            for data_name in data_files:
+                data_train_path = dataset_path + "/train/" + data_name + ".csv"
+                data_test_path = dataset_path + "/test/" + data_name + ".csv"
+                data_label_path = dataset_path + "/label/" + data_name + ".csv"
+
+                data_train = pd.read_csv(data_train_path, header=None).to_numpy()
+                data_test = pd.read_csv(data_test_path, header=None).to_numpy()
+                label = pd.read_csv(data_label_path, header=None).to_numpy().squeeze()
+
+                train_window = convertToSlidingWindow(data_train, window_size=window_size)
+                test_window = convertToSlidingWindow(data_test, window_size=window_size)
+                label = label[window_size - 1:]
+
+                np.save(savepath_train + "/" + data_name + ".npy", train_window)
+                np.save(savepath_test + "/" + data_name + ".npy", test_window)
+                np.save(savepath_label + "/" + data_name + ".npy", label)
+
+
+
+
+

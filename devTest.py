@@ -1,7 +1,7 @@
 import time
 
 import torch
-
+from torch.nn import functional as F
 from Models.CHANNELATTENTION.Model import CHANNELATTENTION
 from Models.Layers.MultiHeadAttention import MultiHeadAttention
 from Models.Layers.PE import PE
@@ -15,6 +15,8 @@ from datetime import  datetime
 import os
 import numpy as np
 import argparse
+
+from Utils.DistanceUtil import KLDivergence
 from Utils.EvalUtil import findSegment
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
@@ -103,7 +105,7 @@ def generateData():
 
 
 
-def learnDepandency():
+def learnDepandency(config):
 
     device = config["device"]
 
@@ -135,15 +137,15 @@ def learnDepandency():
 
 
 if __name__ == '__main__':
-    args = parseParams()
-    config = getConfig(args=args)
-    print(config)
-
-    #get data
-    data_train,data_test,label = readData(dataset_path = config["base_path"] + "/Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
-    print("train shape:",data_train.shape)
-
-    device = config["device"]
+    # args = parseParams()
+    # config = getConfig(args=args)
+    # print(config)
+    #
+    # #get data
+    # data_train,data_test,label = readData(dataset_path = config["base_path"] + "/Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
+    # print("train shape:",data_train.shape)
+    #
+    # device = config["device"]
 
     # learnDepandency()
 
@@ -181,18 +183,18 @@ if __name__ == '__main__':
     #
     # print("ema:\n",ema)
     #
-    model = CHANNELATTENTION(config)
-    model.load_state_dict(torch.load(r"E:\TimeSeriesAnomalyDection\TSAD_System\CheckPoints\CHANNELATTENTION\2024-06-07-16-32-31\checkpoint.pth"))
-
-    # data_test = generateData()
+    # model = CHANNELATTENTION(config)
+    # model.load_state_dict(torch.load(r"E:\TimeSeriesAnomalyDection\TSAD_System\CheckPoints\CHANNELATTENTION\2024-06-07-16-32-31\checkpoint.pth"))
     #
-    data_train = convertToWindow(data=data_train, window_size=config["window_size"])
-    data_test = convertToWindow(data=data_test, window_size=config["window_size"])
+    # # data_test = generateData()
+    # #
+    # data_train = convertToWindow(data=data_train, window_size=config["window_size"])
+    # data_test = convertToWindow(data=data_test, window_size=config["window_size"])
+    # #
+    # #
+    # data = torch.Tensor(data_train[600]).unsqueeze(dim=0)
     #
-    #
-    data = torch.Tensor(data_train[600]).unsqueeze(dim=0)
-
-    print(model.visualize(data))
+    # print(model.visualize(data))
     # model = TRANSFORMER(config)
     # model.load_state_dict(torch.load(r"E:\TimeSeriesAnomalyDection\TSAD_System\CheckPoints\TRANSFORMER\2024-06-06-16-11-06\checkpoint.pth"))
     #
@@ -221,4 +223,23 @@ if __name__ == '__main__':
     #
 
 
+    data = torch.tensor([[1.0, 2.0, 3.0], [4.0, 6.0, 6]])
+    data_2 = torch.tensor([[3.0, 2.0, 1.0], [4.0, 6.0, 6]])
+    data = F.softmax(data, dim=-1)
+    print(data)
+    print(data.shape)
 
+    data_2 = F.softmax(data_2, dim=-1)
+    print(data_2)
+
+    res = KLDivergence(data,data_2)
+    print(res)
+
+    def test(p,q):
+        print("p:",p)
+        print("log sub:",(p.log() - q.log()))
+        loss_pointwise = p * (p.log() - q.log())
+        print("loss_pointwise:",loss_pointwise)
+        loss = loss_pointwise.sum(dim=-1).mean()
+        return loss
+    print(test(data,data_2))

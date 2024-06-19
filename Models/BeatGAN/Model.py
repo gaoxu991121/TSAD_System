@@ -3,7 +3,7 @@ import os
 import torch
 import torch.nn as nn
 
-from torch.configim.lr_scheduler import CosineAnnealingLR
+
 import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
@@ -20,7 +20,6 @@ from torch.nn import functional as F
 
 from Utils.ProtocolUtil import pa
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 
@@ -32,10 +31,6 @@ import seaborn as sns
 
 
 
-
-
-def normal(array,min_val,max_val):
-    return (array-min_val)/(max_val-min_val)
 
 def weights_init(mod):
     """
@@ -56,120 +51,71 @@ def weights_init(mod):
         torch.nn.init.xavier_uniform(mod.weight)
         mod.bias.data.fill_(0.01)
 
-class Encoder(nn.Module):
-    def __init__(self, config,out_z):
-        super(Encoder, self).__init__()
 
-        self.main = nn.Sequential(
-            # input is (nc) x 320
-            nn.Conv1d(config.nc,config.ndf,4,2,1,bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 160
-            nn.Conv1d(config.ndf, config.ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 80
-            nn.Conv1d(config.ndf * 2, config.ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 40
-            nn.Conv1d(config.ndf * 4, config.ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ndf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 20
-            nn.Conv1d(config.ndf * 8, config.ndf * 16, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ndf * 16),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*16) x 10
+class Generator(nn.Module):
+    def __init__(self, nc):
+        super(Generator, self).__init__()
 
-            nn.Conv1d(config.ndf * 16, out_z, 10, 1, 0, bias=False),
-            # state size. (nz) x 1
+        self.encoder = nn.Sequential(
+            # input is (nc) x 64
+            nn.Linear(nc * 64, 256),
+            nn.Tanh(),
+            nn.Linear(256, 128),
+            nn.Tanh(),
+            nn.Linear(128, 32),
+            nn.Tanh(),
+            nn.Linear(32, 10),
+
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(10, 32),
+            nn.Tanh(),
+            nn.Linear(32, 128),
+            nn.Tanh(),
+            nn.Linear(128, 256),
+            nn.Tanh(),
+            nn.Linear(256, nc * 64),
+            nn.Tanh(),
         )
 
     def forward(self, input):
-
-        output = self.main(input)
-
+        input=input.view(input.shape[0],-1)
+        z = self.encoder(input)
+        output = self.decoder(z)
+        output=output.view(output.shape[0],4,-1)
         return output
 
-
-##
-
-
-class Decoder(nn.Module):
-    def __init__(self, config):
-        super(Decoder, self).__init__()
-        self.main=nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose1d(config.nz,config.ngf*16,10,1,0,bias=False),
-            nn.BatchNorm1d(config.ngf*16),
-            nn.ReLU(True),
-            # state size. (ngf*16) x10
-            nn.ConvTranspose1d(config.ngf * 16, config.ngf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ngf * 8),
-            nn.ReLU(True),
-            # state size. (ngf*8) x 20
-            nn.ConvTranspose1d(config.ngf * 8, config.ngf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ngf * 4),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 40
-            nn.ConvTranspose1d(config.ngf * 4, config.ngf*2, 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ngf*2),
-            nn.ReLU(True),
-            # state size. (ngf) x 80
-            nn.ConvTranspose1d(config.ngf * 2, config.ngf , 4, 2, 1, bias=False),
-            nn.BatchNorm1d(config.ngf ),
-            nn.ReLU(True),
-            # state size. (ngf) x 160
-            nn.ConvTranspose1d(config.ngf , config.nc, 4, 2, 1, bias=False),
-            nn.Tanh()
-            # state size. (nc) x 320
-
-
-        )
-
-    def forward(self, input):
-
-        output = self.main(input)
-        return output
-
-
-
-##
 class Discriminator(nn.Module):
-
-    def __init__(self, config):
+    def __init__(self, nc,nw):
         super(Discriminator, self).__init__()
-        model = Encoder(config,1)
-        layers = list(model.main.children())
 
-        self.features = nn.Sequential(*layers[:-1])
-        self.classifier = nn.Sequential(layers[-1])
-        self.classifier.add_module('Sigmoid', nn.Sigmoid())
+        self.features = nn.Sequential(
+            # input is (nc) x 64
+            nn.Linear(nc * 64, 256),
+            nn.Tanh(),
+            nn.Linear(256, 128),
+            nn.Tanh(),
+            nn.Linear(128, 32),
+            nn.Tanh(),
 
-    def forward(self, x):
-        features = self.features(x)
-        features = features
+        )
+
+        self.classifier=nn.Sequential(
+            nn.Linear(32, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, input):
+        # [batch,window,channel]
+        input=input.view(input.shape[0],-1)
+        features = self.features(input)
+        # features = self.feat(features.view(features.shape[0],-1))
+        # features=features.view(out_features.shape[0],-1)
         classifier = self.classifier(features)
         classifier = classifier.view(-1, 1).squeeze(1)
 
         return classifier, features
 
-
-
-
-##
-class Generator(nn.Module):
-
-    def __init__(self, config):
-        super(Generator, self).__init__()
-        self.encoder1 = Encoder(config,config.nz)
-        self.decoder = Decoder(config)
-
-    def forward(self, x):
-        latent_i = self.encoder1(x)
-        gen_x = self.decoder(latent_i)
-        return gen_x, latent_i
 
 
 
@@ -184,32 +130,33 @@ class BeatGAN(BaseModel):
         self.config = config
 
         self.batch_size = config["batch_size"]
-        self.nz = config.nz
-        self.epoch = config.epoch
+        self.window_size = config["window_size"]
+        self.epoch = config["epoch"]
+        self.input_size = config["input_size"]
 
-        self.G = Generator(config).to(self.device)
+        self.G = Generator(self.window_size).to(self.device)
         self.G.apply(weights_init)
 
 
-        self.D = Discriminator(config).to(self.device)
+        self.D = Discriminator(self.window_size).to(self.device)
         self.D.apply(weights_init)
 
 
         self.bce_criterion = nn.BCELoss()
         self.mse_criterion = nn.MSELoss()
 
-        self.configimizerD = torch.optim.Adam(self.D.parameters(), lr=config.lr, betas=(config.beta1, 0.999))
-        self.configimizerG = torch.optim.Adam(self.G.parameters(), lr=config.lr, betas=(config.beta1, 0.999))
+        self.configimizerD = torch.optim.Adam(self.D.parameters(), lr=config["learning_rate"], betas=(config["beta"], 0.999))
+        self.configimizerG = torch.optim.Adam(self.G.parameters(), lr=config["learning_rate"], betas=(config["beta"], 0.999))
 
         self.total_steps = 0
         self.cur_epoch = 0
 
-        self.input = torch.empty(size=(self.config.batch_size, self.config.nc, self.config.isize), dtype=torch.float32,
+        self.input = torch.empty(size=(self.batch_size, self.window_size, self.input_size), dtype=torch.float32,
                                  device=self.device)
-        self.label = torch.empty(size=(self.config.batch_size,), dtype=torch.float32, device=self.device)
+        self.label = torch.empty(size=(self.batch_size,), dtype=torch.float32, device=self.device)
 
-        self.gt = torch.empty(size=(config.batch_size,), dtype=torch.long, device=self.device)
-        self.fixed_input = torch.empty(size=(self.config.batch_size, self.config.nc, self.config.isize), dtype=torch.float32,
+        self.gt = torch.empty(size=(self.batch_size,), dtype=torch.long, device=self.device)
+        self.fixed_input = torch.empty(size=(self.batch_size,self.window_size, self.input_size), dtype=torch.float32,
                                        device=self.device)
         self.real_label = 1
         self.fake_label = 0
@@ -231,7 +178,7 @@ class BeatGAN(BaseModel):
         self.err_g_rec = None
         self.err_g = None
 
-    def fit(self,train_data):
+    def fit(self,train_data,write_log = False):
 
         train_dataloader = self.processData(train_data)
 

@@ -66,7 +66,7 @@ class ANOMALYTRANSFORMER(BaseModel):
 
 
     def getKlLoss(self,p, q):
-        return   F.kl_div(p,q).sum(dim=-1)
+        return   F.kl_div(q.log(),p, reduction='batchmean')
 
     def getAssDis(self, prior, series):
 
