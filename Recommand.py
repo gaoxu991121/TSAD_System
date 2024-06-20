@@ -147,9 +147,9 @@ def splitFiles(files):
     return files[:split_index], files[split_index:]
 
 def datasetProcess():
-    # dataset_pair = [("WADI", True), ("UCR", False), ("SWAT", True), ("SMD", False), ("SMAP", False), ("SKAB", True),
-    #                ("PMS", True), ("MSL", False), ("DMDS", True)]
-    dataset_pair = [("PMS", True), ("MSL", False),("SKAB", True),]
+    dataset_pair = [("WADI", True), ("UCR", False), ("SWAT", True), ("SMD", False), ("SMAP", False), ("SKAB", True),
+                   ("PMS", True), ("MSL", False), ("DMDS", True)]
+
     config = getConfigs()
 
     dataset_split_config = getDatasetSplitConfig()
