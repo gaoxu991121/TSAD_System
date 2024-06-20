@@ -62,7 +62,7 @@ def getConfigs():
     config = {
             "epoch": 1,
             "batch_size": 128,
-            "window_size": 100,
+            "window_size": 30,
             "identifier": "model-evaluation",
             "hidden_size": 64,
             "latent_size": 32,
@@ -559,8 +559,8 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
-    convertRecToWindow("WADI")
-    convertRecToWindow("SWAT")
+    convertRecToWindow("WADI",30)
+    convertRecToWindow("SWAT",30)
 
     datasetProcess()
     #
