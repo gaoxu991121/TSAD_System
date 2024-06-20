@@ -247,7 +247,7 @@ def processWADI(dataset,step):
 
 
 def datasetProcess():
-    dataset_pair = [("WADI", True), ("UCR", False), ("SWAT", True), ("SMD", False), ("SMAP", False), ("SKAB", True),
+    dataset_pair = [ ("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
 
     config = getConfigs()
@@ -562,9 +562,9 @@ if __name__ == '__main__':
     convertRecToWindow("WADI")
     convertRecToWindow("SWAT")
 
-    # datasetProcess()
+    datasetProcess()
     #
-    # evaluateAllDaset(mode="old")
+    evaluateAllDaset(mode="old")
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
     # new_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-3-1.npy"
