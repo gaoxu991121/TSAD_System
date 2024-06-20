@@ -146,6 +146,106 @@ def splitFiles(files):
     split_index = len(files) // 3
     return files[:split_index], files[split_index:]
 
+def convertRecToWindow(dataset = "WADI",window_size = 100):
+    # 分割出新旧数据后，转变数据为滑动窗口
+    mode = "old"
+    recom_dataset_path = "./RecomData/" + mode + "/" + dataset
+    data_files = os.listdir(recom_dataset_path + "/train")
+    for file in data_files:
+        writeWindowDataset(base_path=recom_dataset_path, filename=file, window_size=window_size)
+
+    mode = "new"
+    recom_dataset_path = "./RecomData/" + mode + "/" + dataset
+    data_files = os.listdir(recom_dataset_path + "/train")
+    for file in data_files:
+        writeWindowDataset(base_path=recom_dataset_path, filename=file, window_size=window_size)
+def processWADI(dataset,step):
+
+    dataset_split_config = getDatasetSplitConfig()
+    dataset_path = "./Data/" + dataset
+    if step == 1:
+
+
+        savepath_train_old = "./RecomData/old/" + dataset + "/train"
+        savepath_train_new = "./RecomData/new/" + dataset + "/train"
+
+
+
+
+        checkHolderExist(savepath_train_old)
+        checkHolderExist(savepath_train_new)
+
+
+
+        # 划分旧数据和新数据
+
+
+        data_train_path = dataset_path + "/train/" + dataset + ".csv"
+
+
+
+        data_train = pd.read_csv(data_train_path, header=None).to_numpy()
+
+
+        data_train[np.isnan(data_train)] = 0
+
+
+
+
+
+
+
+        data_train = minMaxNormalization(data_train)
+
+
+        np.save(savepath_train_old + "/" + dataset + ".npy", data_train)
+        np.save(savepath_train_new + "/" + dataset + ".npy", data_train)
+
+
+
+
+    elif step == 2:
+        data_test_path = dataset_path + "/test/" + dataset + ".csv"
+        data_test = pd.read_csv(data_test_path, header=None).to_numpy()
+        data_test[np.isnan(data_test)] = 0
+
+        savepath_test_old = "./RecomData/old/" + dataset + "/test"
+        savepath_test_new = "./RecomData/new/" + dataset + "/test"
+
+        checkHolderExist(savepath_test_new)
+        checkHolderExist(savepath_test_old)
+
+        split_index = dataset_split_config[dataset]
+
+        old_data_test = data_test[:split_index, :]
+        new_data_test = data_test[split_index:, :]
+
+        old_data_test = minMaxNormalization(old_data_test)
+        new_data_test = minMaxNormalization(new_data_test)
+
+        np.save(savepath_test_old + "/" + dataset + ".npy", old_data_test)
+        np.save(savepath_test_new + "/" + dataset + ".npy", new_data_test)
+
+
+    elif step == 3:
+        savepath_label_old = "./RecomData/old/" + dataset + "/label"
+        savepath_label_new = "./RecomData/new/" + dataset + "/label"
+
+
+        checkHolderExist(savepath_label_old)
+        checkHolderExist(savepath_label_new)
+        data_label_path = dataset_path + "/label/" + dataset + ".csv"
+        label = pd.read_csv(data_label_path, header=None).to_numpy().squeeze()
+        split_index = dataset_split_config[dataset]
+        old_label = label[:split_index]
+        new_label = label[split_index:]
+
+        np.save(savepath_label_old + "/" + dataset + ".npy", old_label)
+        np.save(savepath_label_new + "/" + dataset + ".npy", new_label)
+
+
+
+
 def datasetProcess():
     dataset_pair = [("WADI", True), ("UCR", False), ("SWAT", True), ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
@@ -452,9 +552,18 @@ def evaluateAllDaset(mode = "old"):
 if __name__ == '__main__':
 
     #首先根据配置处理数据集
-    datasetProcess()
+    processWADI("WADI",step=1)
+    processWADI("WADI",step=2)
+    processWADI("WADI",step=3)
 
-    evaluateAllDaset(mode="old")
+    processWADI("SWAT",step=1)
+    processWADI("SWAT",step=2)
+    processWADI("SWAT",step=3)
+
+
+    # datasetProcess()
+    #
+    # evaluateAllDaset(mode="old")
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
     # new_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-3-1.npy"
