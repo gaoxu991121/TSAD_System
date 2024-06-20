@@ -128,7 +128,10 @@ def getDatasetSplitConfig():
     config = {
         "SKAB":26322,
         "PMS":53122,
-        "DMDS":200000
+        "DMDS":200000,
+        "WADI":130000,
+        "SWAT":155000,
+
     }
     return config
 
