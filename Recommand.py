@@ -551,15 +551,16 @@ def evaluateAllDaset(mode = "old"):
 
 if __name__ == '__main__':
 
-    #首先根据配置处理数据集
-    processWADI("WADI",step=1)
-    processWADI("WADI",step=2)
-    processWADI("WADI",step=3)
-
-    processWADI("SWAT",step=1)
-    processWADI("SWAT",step=2)
-    processWADI("SWAT",step=3)
-
+    #首先根据配置处理数据集,WADI,SWAT 单独处理
+    # processWADI("WADI",step=1)
+    # processWADI("WADI",step=2)
+    # processWADI("WADI",step=3)
+    #
+    # processWADI("SWAT",step=1)
+    # processWADI("SWAT",step=2)
+    # processWADI("SWAT",step=3)
+    convertRecToWindow("WADI")
+    convertRecToWindow("SWAT")
 
     # datasetProcess()
     #
