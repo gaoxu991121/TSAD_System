@@ -341,45 +341,54 @@ def datasetProcess():
 
             #随机划分新旧数据
             files_new, files_old = splitFiles(data_files)
-
             for file in files_new:
-                data_train = pd.read_csv(os.path.join(data_train_path, file), header=None).to_numpy()
-                data_test = pd.read_csv(os.path.join(data_test_path, file), header=None).to_numpy()
+                try:
+                    data_train = pd.read_csv(os.path.join(data_train_path, file), header=None).to_numpy()
+                    data_test = pd.read_csv(os.path.join(data_test_path, file), header=None).to_numpy()
 
-                data_train[np.isnan(data_train)] = 0
-                data_test[np.isnan(data_test)] = 0
-
-
-                label = pd.read_csv(os.path.join(data_label_path, file), header=None).to_numpy().squeeze()
-
-                data_train = minMaxNormalization(data_train)
-                data_test = minMaxNormalization(data_test)
+                    data_train[np.isnan(data_train)] = 0
+                    data_test[np.isnan(data_test)] = 0
 
 
+                    label = pd.read_csv(os.path.join(data_label_path, file), header=None).to_numpy().squeeze()
 
-                filename = file.split(".")[0]
-                np.save(savepath_train_new + "/" + filename + ".npy", data_train)
-                np.save(savepath_test_new + "/" + filename + ".npy", data_test)
-                np.save(savepath_label_new + "/" + filename + ".npy", label)
+                    data_train = minMaxNormalization(data_train)
+                    data_test = minMaxNormalization(data_test)
+
+
+
+                    filename = file.split(".")[0]
+                    np.save(savepath_train_new + "/" + filename + ".npy", data_train)
+                    np.save(savepath_test_new + "/" + filename + ".npy", data_test)
+                    np.save(savepath_label_new + "/" + filename + ".npy", label)
+                except Exception as e:
+                    # 打印错误信息并跳过该文件
+                    print(f"Error occurred while processing file {file}: {e}")
+                    continue
 
             for file in files_old:
-                data_train = pd.read_csv(os.path.join(data_train_path, file), header=None).to_numpy()
-                data_test = pd.read_csv(os.path.join(data_test_path, file), header=None).to_numpy()
+                try:
+                    data_train = pd.read_csv(os.path.join(data_train_path, file), header=None).to_numpy()
+                    data_test = pd.read_csv(os.path.join(data_test_path, file), header=None).to_numpy()
 
-                data_train[np.isnan(data_train)] = 0
-                data_test[np.isnan(data_test)] = 0
-
-
-                label = pd.read_csv(os.path.join(data_label_path, file), header=None).to_numpy().squeeze()
-
-                data_train = minMaxNormalization(data_train)
-                data_test = minMaxNormalization(data_test)
+                    data_train[np.isnan(data_train)] = 0
+                    data_test[np.isnan(data_test)] = 0
 
 
-                filename = file.split(".")[0]
-                np.save(savepath_train_old + "/" + filename + ".npy", data_train)
-                np.save(savepath_test_old + "/" + filename + ".npy", data_test)
-                np.save(savepath_label_old + "/" + filename + ".npy", label)
+                    label = pd.read_csv(os.path.join(data_label_path, file), header=None).to_numpy().squeeze()
+
+                    data_train = minMaxNormalization(data_train)
+                    data_test = minMaxNormalization(data_test)
+
+
+                    filename = file.split(".")[0]
+                    np.save(savepath_train_old + "/" + filename + ".npy", data_train)
+                    np.save(savepath_test_old + "/" + filename + ".npy", data_test)
+                    np.save(savepath_label_old + "/" + filename + ".npy", label)
+                except Exception as e:
+                    # 打印错误信息并跳过该文件
+                    print(f"Error occurred while processing file {file}: {e}")
+                    continue
 
 
         #分割出新旧数据后，转变数据为滑动窗口
@@ -559,8 +568,8 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
-    convertRecToWindow("WADI",30)
-    convertRecToWindow("SWAT",30)
+    # convertRecToWindow("WADI",30)
+    # convertRecToWindow("SWAT",30)
 
     datasetProcess()
     #
