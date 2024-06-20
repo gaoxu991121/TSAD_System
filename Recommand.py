@@ -222,6 +222,12 @@ def datasetProcess():
             np.save(savepath_label_old + "/" + dataset + ".npy",  old_label)
             np.save(savepath_label_new + "/" + dataset + ".npy", new_label)
 
+            del data_train
+            del old_data_test
+            del new_data_test
+            del old_label
+            del new_label
+
         else:
 
             data_train_path = dataset_path + "/train/"
