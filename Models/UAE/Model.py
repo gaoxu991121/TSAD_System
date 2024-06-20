@@ -129,7 +129,7 @@ class UAE(BaseModel):
                 output = model(ts_batch)
                 # 恢复为原始数据的格式
                 error = nn.L1Loss(reduction='none')(output[:, -1], ts_batch[:, -1])
-                test_reconstr_scores.append(error.cpu().detach().numpy())
+                test_reconstr_scores.append(error.detach().cpu().numpy())
 
 
             test_reconstr_scores = np.concatenate(test_reconstr_scores)

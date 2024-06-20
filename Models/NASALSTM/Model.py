@@ -122,7 +122,10 @@ class NASALSTM(BaseModel):
                 # 恢复为原始数据的格式
                 error = nn.L1Loss(reduction='none')(output[:, -1], ts_batch[:, -1]).squeeze()
 
-                test_reconstr_scores.append(error.cpu().detach().numpy())
+                if len(error.shape) == 0:
+                    error = error.unsqueeze(dim=0)
+
+                test_reconstr_scores.append(error.detach().cpu().numpy())
 
 
             score.append(np.concatenate(test_reconstr_scores))

@@ -134,7 +134,12 @@ class TRANSFORMER(BaseModel):
 
                 output = self.forward(item, item[:, -1, :].unsqueeze(dim=1))
                 loss = l(output[:, -1, :], item[:, -1, :])
-                score.append(loss.sum(dim=-1).detach().cpu())
+
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+
+                score.append(loss.detach().cpu())
 
 
             score = torch.concatenate(score, dim=0).numpy()

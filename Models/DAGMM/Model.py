@@ -227,9 +227,11 @@ class DAGMM(BaseModel):
                 l1, l2 = l(x_hat, d), l(gamma, d)
 
                 loss = torch.sum(l1,dim=-1) + torch.sum(l2,dim=-1)
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
 
-
-                score.append(loss.sum(dim=-1))
+                score.append(loss)
 
         score = torch.concatenate(score, dim=0).detach().cpu().numpy()
         score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)

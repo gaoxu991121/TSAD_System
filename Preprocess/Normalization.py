@@ -12,6 +12,18 @@ def instanceNormalization(data:np.array([]),channels:int):
         data[:, i] = normalized_feature
     return data
 
+def minMaxNormalization(data:np.array([]),range_min=0, range_max=1):
+    channels = data.shape[-1]
+    for i in range(channels):
+        feature = data[:, i]
+        min_value = feature.min()
+        max_value = feature.max()
+        # 计算比例
+        scale = (range_max - range_min) / (max_value - min_value + 1e-10)
+        # 归一化
+        normalized_data = scale * (feature  - min_value) + range_min
+        data[:, i] = normalized_data
+    return data
 
 
 def minMaxScaling(data, min_value, max_value, range_min=0, range_max=1):
@@ -26,7 +38,7 @@ def minMaxScaling(data, min_value, max_value, range_min=0, range_max=1):
     range_max (float): 归一化范围的最大值 (默认为1)
 
     返回:
-    归一化的NumPy数组
+    归一化的NumPy一维数组
     """
     # 计算比例
     scale = (range_max - range_min) / (max_value - min_value + 1e-10)

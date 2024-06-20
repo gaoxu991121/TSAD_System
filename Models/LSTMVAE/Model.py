@@ -111,6 +111,7 @@ class LSTMVAE(BaseModel):
                 kl_loss = -0.5 * torch.sum(1 + z_log_var - z_mean.pow(2) - z_log_var.exp())
                 loss = reconstruction_loss + kl_loss
 
+                #print(torch.mean(loss).item())
                 l1s.append(torch.mean(loss).item())
                 running_loss += loss.item()
 
@@ -121,7 +122,7 @@ class LSTMVAE(BaseModel):
             scheduler.step()  # 在每个epoch后更新学习率
             # 计算当前epoch的平均损失
             epoch_loss.append(running_loss / len(train_loader))
-            print(f'train epoch [{ep}/{self.epoch}],\t loss = {np.mean(l1s)}')
+            print(f'train epoch [{ep+1}/{self.epoch}],\t loss = {np.mean(l1s)}')
 
 
         identifier = self.config["identifier"]
@@ -152,6 +153,8 @@ class LSTMVAE(BaseModel):
                 if item.shape[-1] > 1:
                     loss = loss.sum(dim=-1)
 
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
                 score.append(loss.detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()

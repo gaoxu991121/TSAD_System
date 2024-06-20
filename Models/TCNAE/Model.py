@@ -187,9 +187,11 @@ class TCNAE(BaseModel):
                 y = self.forward(item)
 
                 loss = F.mse_loss(y, item, reduction='none')
+                loss = loss.sum(dim=-1).sum(dim=-1)
 
-
-                score.append(loss.sum(dim=-1).sum(dim=-1).detach().cpu())
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+                score.append(loss.detach().cpu())
 
             score = torch.concatenate(score,dim=0).numpy()
 

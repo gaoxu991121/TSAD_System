@@ -38,7 +38,7 @@ def EuclideanDistance(x,y):
     return euclidean_distance.mean()
 
 
-def MahalanobisDistance(x, y,epsilon = 1e-6):
+def MahalanobisDistance(x, y,epsilon = 1e-10):
     """
         计算两个二维数组之间的马氏距离。
 
@@ -58,11 +58,9 @@ def MahalanobisDistance(x, y,epsilon = 1e-6):
         raise ValueError("x 和 y 必须具有相同的形状")
 
     # 计算协方差矩阵（每列代表一个变量）
-    cov_matrix = np.cov(x.T)
-
+    cov_matrix = np.cov(np.concatenate([x,y],axis=0).T)
     # 对协方差矩阵进行正则化处理
     cov_matrix += np.eye(cov_matrix.shape[0]) * epsilon
-
     # 计算协方差矩阵的逆矩阵
     inv_cov_matrix = np.linalg.inv(cov_matrix)
 
@@ -74,3 +72,36 @@ def MahalanobisDistance(x, y,epsilon = 1e-6):
     mahal_distance = np.mean(left_term * diff)
 
     return np.sqrt(mahal_distance).mean()
+
+def CosineDistance(x, y):
+    """
+      计算两个向量之间的余弦相似性。
+
+      参数:
+      x (numpy.ndarray): 第一个样本
+      y (numpy.ndarray): 第二个样本
+
+      返回:
+      float: 余弦相似性
+      """
+    # 计算点积
+
+    dot_product = np.dot(x,y.T)
+
+    norm_a = np.linalg.norm(x,ord=None,axis=1)
+    norm_b = np.linalg.norm(y,ord=None,axis=1)
+    # 计算余弦相似性
+    cosine_sim =  np.diagonal(dot_product)/(np.multiply(norm_a,norm_b))
+
+    return cosine_sim.mean()
+
+
+def spearmanDistance(x, y):
+    n_features = x.shape[1]
+    spearman_coefficients = np.zeros(n_features)
+
+    for i in range(n_features):
+        coeff, _ = spearmanr(series_a[:, i], series_b[:, i])
+        spearman_coefficients[i] = coeff
+
+    return spearman_coefficients

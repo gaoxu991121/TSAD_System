@@ -86,10 +86,10 @@ if __name__ == '__main__':
     args = parseParams()
     config = getConfig(args=args)
     print(config)
-
+    window_size = config["window_size"]
     #get data
     data_train,data_test,label = readData(dataset_path = config["base_path"] + "/Data/" +  config["dataset"] ,filename = config["filename"],file_type = config["filetype"])
-
+    label = label[window_size - 1:]
     print("data_train shape:",data_train.shape)
     print("data_test shape:", data_test.shape)
 

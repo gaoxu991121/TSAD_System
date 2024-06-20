@@ -22,11 +22,11 @@ def readData(dataset_path,filename,file_type):
     elif file_type == "npy":
         data_train_path = dataset_path + "/train/" + filename + "." + file_type
         data_test_path = dataset_path + "/test/" + filename + "." + file_type
-        data_label_path = dataset_path + "/label/" + filename + ".csv"
+        data_label_path = dataset_path + "/label/" + filename + "." + file_type
 
         data_train = np.load(data_train_path)
         data_test = np.load(data_test_path)
-        label = pd.read_csv(data_label_path, header=None).to_numpy().squeeze()
+        label = np.load(data_label_path)
 
 
     else:

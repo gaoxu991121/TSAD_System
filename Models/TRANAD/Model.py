@@ -253,8 +253,11 @@ class TRANAD(BaseModel):
                 x1, x2 = self.forward(item)
 
                 loss = 0.5*l(x2[:, -1, :], item[:, -1, :]) + 0.5*l(x1[:, -1, :], item[:, -1, :])
+                loss = loss.sum(dim=-1)
 
-                score.append(loss.sum(dim=-1).detach().cpu())
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+                score.append(loss.detach().cpu())
 
 
             score = torch.concatenate(score, dim=0).numpy()

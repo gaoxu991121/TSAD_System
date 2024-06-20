@@ -1,5 +1,6 @@
 import time
 
+import pandas as pd
 import torch
 from torch.nn import functional as F
 from Models.CHANNELATTENTION.Model import CHANNELATTENTION
@@ -7,6 +8,7 @@ from Models.Layers.MultiHeadAttention import MultiHeadAttention
 from Models.Layers.PE import PE
 from Models.Layers.RevIN import RevIN
 from Models.TRANSFORMER.Model import TRANSFORMER
+from Preprocess.Normalization import minMaxScaling, minMaxNormalization
 from Preprocess.Window import convertToWindow
 
 from Utils.DataUtil import readData, readJson
@@ -16,7 +18,7 @@ import os
 import numpy as np
 import argparse
 
-from Utils.DistanceUtil import KLDivergence, EuclideanDistance, MahalanobisDistance
+from Utils.DistanceUtil import KLDivergence, EuclideanDistance, MahalanobisDistance, CosineDistance, Softmax
 from Utils.EvalUtil import findSegment
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
@@ -223,8 +225,27 @@ if __name__ == '__main__':
     #
 
 
-    data = torch.tensor([[1.0, 2.0, 3.0], [4.0, 6.0, 6]])
-    data_2 = torch.tensor([[3.0, 2.0, 1.0], [4.0, 7.0, 6]])
+    # data = torch.tensor([[1.0, 2.0, 3.0],[4.0, 6.0, 6],[10.0, 10.0, 10]])
+    # data_2 = torch.tensor([[3.0, 2.0, 1.0],[4.0, 3,7],[10.0, 10.0, 10]])
+    # data = data.numpy()
+    # data_2 = data_2.numpy()
+    #
+    # print(data)
+    # print(data_2)
+    #
+    #
+    # print("-------------------")
+    #
+    #
+    # data = minMaxNormalization(data,0,1)
+    # print(data)
+    #
+    # data_2 = minMaxNormalization(data_2, 0, 1)
+    # print(data_2)
+
+
+    # res = EuclideanDistance(data,data_2)
+    # print("res:",res)
     # data = F.softmax(data, dim=-1)
     # print(data)
     # print(data.shape)
@@ -246,23 +267,31 @@ if __name__ == '__main__':
     # data_2 = data_2.numpy()
     # res = KLDivergence(data,data_2)
     # print(res)
-
-    data = data.numpy()
-    data_2 = data_2.numpy()
-    print(data.shape)
-    from scipy.spatial.distance import mahalanobis
-
-    # sample_x = np.array([15,46,13])
-    # sample_y = np.array([11,9,35])
-    # x = np.array([data,data_2]).T
-    # print("x shape:",x.shape)
-    # # 算b与d马氏距离
-    # cov = np.cov(x)
-    # print("cov shape:",cov.shape)
-    # print(mahalanobis(data_2,data_2,cov))
     #
-    # print(data - data_2)
-    res = MahalanobisDistance(data,data_2)
-    print(res)
+    # data = data.numpy()
+    # data_2 = data_2.numpy()
+    # print(data.shape)
+    # from scipy.spatial.distance import mahalanobis
+    #
+    # # sample_x = np.array([15,46,13])
+    # # sample_y = np.array([11,9,35])
+    # # x = np.array([data,data_2]).T
+    # # print("x shape:",x.shape)
+    # # # 算b与d马氏距离
+    # # cov = np.cov(x)
+    # # print("cov shape:",cov.shape)
+    # # print(mahalanobis(data_2,data_2,cov))
+    # #
+    # # print(data - data_2)
+    # res = CosineDistance(data,data_2)
+    # print(res)
 
+    data = pd.read_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\train\PMS.csv",header = None)
+    data = data.values
+    data = data[:10]
+
+    print(data)
+    print("------------------")
+    data = minMaxNormalization(data)
+    print(data)
 

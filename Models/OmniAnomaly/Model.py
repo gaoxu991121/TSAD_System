@@ -138,8 +138,10 @@ class OmniAnomaly(BaseModel):
                 item = batch[0].to(self.device)
                 y_pred, mu, logvar, hidden = self.forward(item, hidden.to(self.device) if i else None)
                 # 将张量拆分成 128 个形状为 (5,) 的张量
-
-                score.append(l(y_pred[:, -1, :], item[:, -1, :]).sum(dim=-1))
+                loss = l(y_pred[:, -1, :], item[:, -1, :]).sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+                score.append(loss)
 
             score = torch.cat([tensor for tensor in score], dim=0).squeeze()
 

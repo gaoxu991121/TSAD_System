@@ -142,8 +142,10 @@ class LSTMAE(BaseModel):
                 y = self.forward(item)
 
                 loss = F.mse_loss(y[:, -1, :], item[:, -1, :], reduction='none')
-
-                score.append(loss.sum(dim=-1).detach().cpu())
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+                score.append(loss.detach().cpu())
 
 
             score = torch.concatenate(score,dim=0).numpy()

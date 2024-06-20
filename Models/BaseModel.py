@@ -5,11 +5,13 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 
-from Preprocess.Window import convertToWindow
+from Preprocess.Window import convertToWindow, convertToSlidingWindow
 from Utils.EvalUtil import countResult
 from Utils.LogUtil import wirteLog
 from Utils.EvalUtil import countResult, findSegment
 from Utils.ProtocolUtil import pa, apa
+
+
 
 
 class BaseModel(nn.Module):
@@ -126,7 +128,7 @@ class BaseModel(nn.Module):
         window_size = self.config["window_size"]
         batch_size = self.config["batch_size"]
 
-        data = convertToWindow(data=data, window_size=window_size)
+        data = convertToSlidingWindow(data=data, window_size=window_size)
 
         if shuffle:
             data = self.shuffle(data)

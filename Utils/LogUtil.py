@@ -7,7 +7,7 @@ def wirteLog(path, title, data):
     写日志，自定义路径以及名称
 
     :param path: str，相对项目的路径
-    :param title: str，文件名，会自动添加.log后缀
+    :param title: str，文件名，会自动添加.json后缀
     :param data: dict，字典类型的数据，以json形式保存
 
     """
@@ -17,7 +17,7 @@ def wirteLog(path, title, data):
         # 如果文件夹不存在，则创建它
         os.makedirs(path)
 
-    with open(os.path.join(path, title + ".log"), 'a') as f:
+    with open(os.path.join(path, title + ".json"), 'a') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
