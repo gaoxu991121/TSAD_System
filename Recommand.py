@@ -505,10 +505,10 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
                                                                       protocol="pa")
 
         (tp, fp, tn, fn) = countResult(predict_labels=ori_predict_labels, ground_truth=label)
-        config["ori_tp"] = tp
-        config["ori_fp"] = fp
-        config["ori_tn"] = tn
-        config["ori_fn"] = fn
+        config["ori_tp"] = float(tp)
+        config["ori_fp"] = float(fp)
+        config["ori_tn"] = float(tn)
+        config["ori_fn"] = float(fn)
 
         print("finish evaluating method:", method)
         # visualization
