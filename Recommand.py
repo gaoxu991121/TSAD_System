@@ -564,7 +564,7 @@ def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = No
     length,window_size,channels = data.shape
 
     results = []
-    if indices == None:
+    if indices.all() == None:
         indices = np.random.choice(length, sample_num, replace=False)
 
     for sample_index in indices:
