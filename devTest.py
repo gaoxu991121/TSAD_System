@@ -10,6 +10,7 @@ from Models.Layers.RevIN import RevIN
 from Models.TRANSFORMER.Model import TRANSFORMER
 from Preprocess.Normalization import minMaxScaling, minMaxNormalization
 from Preprocess.Window import convertToWindow
+from Recommand import sampleFromWindowData
 
 from Utils.DataUtil import readData, readJson
 import math
@@ -225,13 +226,18 @@ if __name__ == '__main__':
     #
 
 
-    # data = torch.tensor([[1.0, 2.0, 3.0],[4.0, 6.0, 6],[10.0, 10.0, 10]])
-    # data_2 = torch.tensor([[3.0, 2.0, 1.0],[4.0, 3,7],[10.0, 10.0, 10]])
-    # data = data.numpy()
-    # data_2 = data_2.numpy()
+    data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
+
+    data = data.numpy()
+    print(data )
     #
-    # print(data)
-    # print(data_2)
+    print(data.shape)
+
+
+    res = sampleFromWindowData(data,2)
+
+    print(res)
+
     #
     #
     # print("-------------------")
@@ -286,12 +292,12 @@ if __name__ == '__main__':
     # res = CosineDistance(data,data_2)
     # print(res)
 
-    data = pd.read_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\train\PMS.csv",header = None)
-    data = data.values
-    data = data[:10]
-
-    print(data)
-    print("------------------")
-    data = minMaxNormalization(data)
-    print(data)
-
+    # data = pd.read_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\train\PMS.csv",header = None)
+    # data = data.values
+    # data = data[:10]
+    #
+    # print(data)
+    # print("------------------")
+    # data = minMaxNormalization(data)
+    # print(data)
+    #

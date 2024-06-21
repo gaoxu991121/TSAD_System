@@ -32,7 +32,7 @@ def getSimilarity(origin_sample,new_sample):
 
     return 1 / ((kl + js) * 0.5 + 1e-6)
 
-def calculateSimilarity(origin_sample_list,new_sample_list):
+def calculateSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples):
 
     '''
     计算新数据列表和旧数据列表的相似性，返回列表
@@ -40,6 +40,8 @@ def calculateSimilarity(origin_sample_list,new_sample_list):
     :param new_sample_list: 需要比较的新数据的样本列表,即窗口列表
     :return:返回列表格式，每个新数据样本对应的相似性最大的旧数据样本的Index以及相似性数值。 [(max_similarity_index,max_similarity)]
     '''
+
+    total_similarity = 0
 
     result = []
     for new_index,new_sample in enumerate(new_sample_list):
@@ -52,9 +54,11 @@ def calculateSimilarity(origin_sample_list,new_sample_list):
                 max_similarity = similarity
                 max_similarity_index = origin_index
 
+        total_similarity += max_similarity
+
         result.append((max_similarity_index,max_similarity))
 
-    return result
+    return result,total_similarity
 
 
 
@@ -556,6 +560,93 @@ def evaluateAllDaset(mode = "old"):
 
     print("finish evaluating all")
 
+def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = None):
+    length,window_size,channels = data.shape
+
+    results = []
+    if indices == None:
+        indices = np.random.choice(length, sample_num, replace=False)
+
+    for sample_index in indices:
+        results.append(data[sample_index].reshape(-1))
+
+    return results,indices
+
+def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 100):
+    print("sample - dataset:", dataset)
+    dataset_old_path = "./RecomData/old/" + dataset + "/window/test/" + old_filename + ".npy"
+    dataset_new_path = "./RecomData/new/" + dataset + "/window/test/" + new_filename + ".npy"
+    dataset_old_label_path = "./RecomData/old/" + dataset + "/window/label/" + old_filename + ".npy"
+
+
+    old_window_data = np.load(dataset_old_path)
+    new_window_data = np.load(dataset_new_path)
+    old_label_data = np.load(dataset_old_label_path)
+
+
+    old_window_samples,old_indices = sampleFromWindowData(old_window_data,sample_num)
+    new_window_samples,new_indices = sampleFromWindowData(new_window_data,sample_num)
+
+    method_recommond_score = []
+
+    for method in method_list:
+        score_path = "./RecomData/scores/old" + dataset + "/" + old_filename + "/" + method + ".npy"
+        anomaly_scores = np.load(score_path)
+
+        anomaly_scores_samples,_ = sampleFromWindowData(old_window_data,sample_num,indices=old_indices)
+        old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
+
+        result_list,total_recommond_score = calculateSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores,old_label_samples = old_label_samples)
+
+        method_recommond_score.append(total_recommond_score)
+
+
+    max_score_index = np.array(method_recommond_score).argmax(axis=0)
+    max_score = np.array(method_recommond_score).max(axis=0)
+
+    recommon_method = method_list[max_score_index]
+    return recommon_method,max_score
+
+
+def recommendAll():
+    dataset_list = [("SMD", False),
+                    ("PMS", True)]
+    method_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
+
+    file_recommond_method_list = []
+    for dataset,isonly in dataset_list:
+        print("recommending dataset:",dataset)
+        if isonly:
+            old_filename = dataset
+            new_filename = dataset
+            recommond_method,max_score = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100)
+            file_recommond_method_list.append((dataset, dataset + ".npy", recommond_method))
+        else:
+
+
+            old_data_path = "./RecomData/old/" + dataset + "/window/test/"
+            new_data_path = "./RecomData/new/" + dataset + "/window/test/"
+
+            old_data_files = os.listdir(old_data_path)
+            new_data_files = os.listdir(new_data_path)
+
+
+            for new_filename in new_data_files:
+                total_rec_method = ""
+                total_max_score = 0
+                for old_filename in old_data_files:
+                    recommond_method, max_score = sampleAndMatch(dataset, old_filename=old_filename.split(",")[0],
+                                                                new_filename=new_filename.split(",")[0], method_list=method_list,
+                                                                sample_num=100)
+                    if max_score > total_max_score:
+                        total_max_score = max_score
+                        total_rec_method = recommond_method
+                file_recommond_method_list.append((dataset,new_filename,total_rec_method))
+
+    print("final result:")
+    print(file_recommond_method_list)
+
+
 
 
 if __name__ == '__main__':
@@ -571,9 +662,11 @@ if __name__ == '__main__':
     # convertRecToWindow("WADI",30)
     # convertRecToWindow("SWAT",30)
 
-    datasetProcess()
-    #
-    evaluateAllDaset(mode="old")
+    # datasetProcess()
+    # evaluateAllDaset(mode="old")
+
+    recommendAll()
+
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
     # new_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-3-1.npy"
