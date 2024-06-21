@@ -560,11 +560,11 @@ def evaluateAllDaset(mode = "old"):
 
     print("finish evaluating all")
 
-def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = None):
+def sampleFromWindowData(data: np.ndarray,sample_num:int,indices = None):
     length,window_size,channels = data.shape
 
     results = []
-    if indices.all() == None:
+    if indices == None:
         indices = np.random.choice(length, sample_num, replace=False)
 
     for sample_index in indices:
