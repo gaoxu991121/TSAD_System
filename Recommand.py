@@ -12,7 +12,7 @@ from Preprocess.Normalization import minMaxNormalization
 from Preprocess.Window import convertToSlidingWindow
 from Utils.DataUtil import readData
 from Utils.DistanceUtil import KLDivergence, Softmax, JSDivergence
-from Utils.EvalUtil import findSegment
+from Utils.EvalUtil import findSegment, countResult
 from Utils.LogUtil import wirteLog
 from Utils.PlotUtil import plotAllResult
 import pandas as pd
@@ -503,6 +503,12 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
         pa_predict_labels, pa_f1, pa_threshold = model.getBestPredict(anomaly_score=anomaly_scores, n_thresholds=25,
                                                                       ground_truth_label=label,
                                                                       protocol="pa")
+
+        (tp, fp, tn, fn) = countResult(predict_labels=ori_predict_labels, ground_truth=label)
+        config["ori_tp"] = tp
+        config["ori_fp"] = fp
+        config["ori_tn"] = tn
+        config["ori_fn"] = fn
 
         print("finish evaluating method:", method)
         # visualization
