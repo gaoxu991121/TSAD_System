@@ -632,11 +632,13 @@ def recommendAll():
 
 
             for new_filename in new_data_files:
+                print("new_filename:",new_filename)
                 total_rec_method = ""
                 total_max_score = 0
                 for old_filename in old_data_files:
-                    recommond_method, max_score = sampleAndMatch(dataset, old_filename=old_filename.split(",")[0],
-                                                                new_filename=new_filename.split(",")[0], method_list=method_list,
+                    print("old_filename:", old_filename)
+                    recommond_method, max_score = sampleAndMatch(dataset, old_filename=old_filename.split(".")[0],
+                                                                new_filename=new_filename.split(".")[0], method_list=method_list,
                                                                 sample_num=100)
                     if max_score > total_max_score:
                         total_max_score = max_score
