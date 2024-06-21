@@ -561,7 +561,7 @@ def evaluateAllDaset(mode = "old"):
     print("finish evaluating all")
 
 def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = np.array([])):
-    length,window_size,channels = data.shape
+    length = len(data)
 
     results = []
     if len(indices) == 0 :
