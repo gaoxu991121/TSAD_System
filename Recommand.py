@@ -590,7 +590,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
     method_recommond_score = []
 
     for method in method_list:
-        score_path = "./RecomData/scores/old" + dataset + "/" + old_filename + "/" + method + ".npy"
+        score_path = "./RecomData/scores/old/" + dataset + "/" + old_filename + "/" + method + ".npy"
         anomaly_scores = np.load(score_path)
 
         anomaly_scores_samples,_ = sampleFromWindowData(old_window_data,sample_num,indices=old_indices)
@@ -621,6 +621,7 @@ def recommendAll():
             new_filename = dataset
             recommond_method,max_score = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100)
             file_recommond_method_list.append((dataset, dataset + ".npy", recommond_method))
+            print("recommond method:", recommond_method)
         else:
 
 
@@ -640,6 +641,7 @@ def recommendAll():
                     recommond_method, max_score = sampleAndMatch(dataset, old_filename=old_filename.split(".")[0],
                                                                 new_filename=new_filename.split(".")[0], method_list=method_list,
                                                                 sample_num=100)
+                    print("recommond method:",recommond_method)
                     if max_score > total_max_score:
                         total_max_score = max_score
                         total_rec_method = recommond_method
