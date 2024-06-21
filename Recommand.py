@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import shutil
@@ -64,7 +65,7 @@ def calculateSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,ol
 
 def getConfigs():
     config = {
-            "epoch": 1,
+            "epoch": 2,
             "batch_size": 128,
             "window_size": 30,
             "identifier": "model-evaluation",
@@ -451,6 +452,7 @@ def writeWindowDataset(base_path,filename,window_size):
 def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     config = getConfigs()
     model_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
+
     # model_list = ["LSTMVAE","PCAAD"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
@@ -468,6 +470,11 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
 
     for method in model_list:
         config["model_name"] = method
+
+        if method in ["TRANSFORMER","TRANAD"]:
+            config["epoch"] = 5
+        else:
+            config["epoch"] = 2
 
         print("training method:",method)
 
@@ -527,7 +534,7 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
         config["apa_f1"] = apa_f1
         config["pa_f1"] = pa_f1
 
-        config["apa_threshold"] = ori_threshold
+        config["ori_threshold"] = ori_threshold
         config["apa_threshold"] = apa_threshold
         config["pa_threshold"] = pa_threshold
         config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
@@ -650,6 +657,38 @@ def recommendAll():
     print("final result:")
     print(file_recommond_method_list)
 
+def getEvaluationResult(mode = "old",dataset_list = [],method_list = []):
+    path = "./Logs/recommondation/" + mode +"/"
+    result = {}
+    for dataset,isonly in dataset_list:
+
+        result[dataset] = {}
+
+        files_path = path + dataset
+
+        file_names = os.listdir(files_path)
+
+        for file_name in file_names:
+            file_name = file_name.split(".")[0]
+
+            result[dataset][file_name] = {}
+
+            for method in method_list:
+                result[dataset][file_name][method] = {}
+                eval_path = files_path + "/" + file_name + "/" + method + ".json"
+                with open(eval_path, "r") as file:
+                    data_dict = json.load(file)
+
+                result[dataset][file_name][method]["ori_f1"] = data_dict["ori_f1"]
+                result[dataset][file_name][method]["pa_f1"] = data_dict["pa_f1"]
+                result[dataset][file_name][method]["ori_f1"] = data_dict["ori_f1"]
+
+                result[dataset][file_name][method]["pa_threshold"] = data_dict["pa_threshold"]
+                result[dataset][file_name][method]["apa_threshold"] = data_dict["apa_threshold"]
+                result[dataset][file_name][method]["ori_threshold"] = data_dict["ori_threshold"]
+
+    return result
+
 
 
 
@@ -667,9 +706,9 @@ if __name__ == '__main__':
     # convertRecToWindow("SWAT",30)
 
     # datasetProcess()
-    # evaluateAllDaset(mode="old")
+    evaluateAllDaset(mode="old")
 
-    recommendAll()
+    # recommendAll()
 
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
