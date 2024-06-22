@@ -711,7 +711,7 @@ if __name__ == '__main__':
     # convertRecToWindow("SWAT",30)
 
     # datasetProcess()
-    evaluateAllDaset(mode="old")
+    evaluateAllDaset(mode="new")
 
     # recommendAll()
 
