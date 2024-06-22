@@ -552,7 +552,9 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
 
 
 def evaluateAllDaset(mode = "old"):
-    datasets= [("DMDS", True)]
+    # datasets = [("DMDS", True)]
+    datasets = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+                   ("PMS", True), ("MSL", False), ("DMDS", True)]
     # datasets = [("MSL", False)]
     print("start evaluating all")
 
