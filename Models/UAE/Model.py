@@ -115,7 +115,7 @@ class UAE(BaseModel):
 
         test_loader = self.processData(test_data)
 
-
+        loss_funcation = nn.MSELoss(reduction='none')
         test_intermediate_scores = []
 
         for channal_id in range(self.input_size):
@@ -128,7 +128,8 @@ class UAE(BaseModel):
                 ts_batch = ts_batch.float().to(model.device)
                 output = model(ts_batch)
                 # 恢复为原始数据的格式
-                error = nn.L1Loss(reduction='none')(output[:, -1], ts_batch[:, -1])
+                # error = nn.L1Loss(reduction='none')(output[:, -1], ts_batch[:, -1])
+                error = loss_funcation(output[:, -1],ts_batch[:, -1])
                 test_reconstr_scores.append(error.detach().cpu().numpy())
 
 
@@ -141,10 +142,10 @@ class UAE(BaseModel):
 
 
         # 计算异常分数
-        distr_params = [self.__fit_univar_gaussian_distr(self.error_tc_train[:, i]) for i in range(self.error_tc_train.shape[1])]
-        test_prob_scores = -1 * np.concatenate([self.__get_channel_probas(error_tc_test[:, i].reshape(-1, 1), distr_params[i], logcdf=True) for i in range(error_tc_test.shape[1])],
-                                               axis=1)
-        score = np.sum(test_prob_scores, axis=1)
+        # distr_params = [self.__fit_univar_gaussian_distr(self.error_tc_train[:, i]) for i in range(self.error_tc_train.shape[1])]
+        # test_prob_scores = -1 * np.concatenate([self.__get_channel_probas(error_tc_test[:, i].reshape(-1, 1), distr_params[i], logcdf=True) for i in range(error_tc_test.shape[1])],
+        #                                        axis=1)
+        score = np.sum(error_tc_test, axis=1)
 
         score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
         return score

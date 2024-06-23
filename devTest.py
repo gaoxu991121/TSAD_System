@@ -23,6 +23,11 @@ from Utils.DistanceUtil import KLDivergence, EuclideanDistance, MahalanobisDista
 from Utils.EvalUtil import findSegment
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
+import matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
+matplotlib.use('TkAgg')
+
 
 
 def parseParams():
@@ -197,9 +202,72 @@ def paints():
     plt.grid(True)
     plt.show()
 
+def plotDataset(dataset,filename,mode = "train" ):
+
+    base_path = "./Data/" + dataset + "/" + mode + "/"
+    data = pd.read_csv(base_path+filename,header=None)
+    data = data.values
+
+    print("shape:",data.shape)
+    channels = data.shape[-1]
+
+    data = data[:,113]
+
+    plt.figure(dpi=300, figsize=(20, 5))
+    plt.plot(data[:300000])
+
+    plt.plot(data[900000:1200000] - 3 )
+
+
+
+    # 隐藏 X 轴和 Y 轴的标签
+    plt.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False, labelbottom=False,
+                    labelleft=False)
+
+    plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
+
+    plt.show()
+
+def plotFig2(dataset,filename,mode = "test" ):
+
+    base_path = "./Data/" + dataset + "/" + mode + "/"
+    label_path =    "./Data/" + dataset + "/label/"
+    label = pd.read_csv(label_path+filename,header=None)
+    data = pd.read_csv(base_path+filename,header=None)
+    data = data.values
+
+    print("shape:",data.shape)
+    channels = data.shape[-1]
+    data_1 = data[:, 111]
+    data_2 = data[:,113]
+    data_3 = data[:, 114]
+
+    data_1 = minMaxScaling(data_1,data_1.min(),data_1.max())
+    data_2 = minMaxScaling(data_2,data_2.min(),data_2.max())
+    data_3 = minMaxScaling(data_3,data_3.min(),data_3.max())
+
+    plt.figure(dpi=300, figsize=(20, 10))
+    plt.plot(data_1)
+
+    plt.plot(data_2 -3)
+
+    plt.plot(data_3 - 6)
+    plt.plot(label - 9)
+
+
+
+    # 隐藏 X 轴和 Y 轴的标签
+    plt.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False, labelbottom=False,
+                    labelleft=False)
+
+    plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
+
+    plt.show()
+
 
 if __name__ == '__main__':
-    paints()
+    plotFig2("WADI", "WADI.csv", mode="test")
+    #paints()
     # args = parseParams()
     # config = getConfig(args=args)
     # print(config)
@@ -285,18 +353,18 @@ if __name__ == '__main__':
     #               threshold=threshold)
     #
 
-
-    data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
-
-    data = data.numpy()
-    print(data )
     #
-    print(data.shape)
-
-
-    res = sampleFromWindowData(data,2)
-
-    print(res)
+    # data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
+    #
+    # data = data.numpy()
+    # print(data )
+    # #
+    # print(data.shape)
+    #
+    #
+    # res = sampleFromWindowData(data,2)
+    #
+    # print(res)
 
     #
     #
