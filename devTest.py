@@ -137,9 +137,69 @@ def learnDepandency(config):
     data = torch.Tensor(data_train[500]).unsqueeze(dim=0)
     print(model.visualize(data))
 
+def change(series,i):
+    series[i] = 2
+    series[i+1] = 1.5
+    series[i + 1] = 1.2
+    return series
+
+def paints():
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 生成示例数据
+    np.random.seed(0)
+    time = np.linspace(0, 100, 300)
+    series_a =  0.15*np.sin(time / 5) + np.random.normal(0, 0.2, len(time))
+    series_b = np.random.normal(0, 0.1, len(time))
+
+    series_a_base = np.zeros_like(time)
+    series_b_base = np.zeros_like(time)
+
+    i = 10
+    change(series_a_base,i)
+
+    i = 60
+    change(series_a_base, i)
+
+    i = 110
+    change(series_a_base, i)
+
+    i = 160
+    change(series_a_base, i)
+
+    i = 210
+    change(series_a_base, i)
+
+    i = 260
+    change(series_a_base, i)
+
+    series_a = series_a_base + series_a
+
+
+
+    # # 假设相似部分在时间点 40-60 和 120-140
+    similar_intervals = [(40, 60), (120, 140)]
+
+    # 绘制图形
+    plt.figure(figsize=(14, 7))
+    plt.plot(time, series_a, label='Series A', color='blue')
+    plt.plot(time, series_b, label='Series B', color='red')
+
+    # 标注相似部分
+    for start, end in similar_intervals:
+        plt.axvspan(time[start], time[end], color='yellow', alpha=0.3)
+
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.title('Time Series Comparison')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 if __name__ == '__main__':
+    paints()
     # args = parseParams()
     # config = getConfig(args=args)
     # print(config)

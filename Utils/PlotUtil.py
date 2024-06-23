@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import matplotlib
 from mpl_toolkits import axisartist
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 def colorTransform(r,g,b,a:float = 1.0):
     return (r/255,g/255,b/255,a)
