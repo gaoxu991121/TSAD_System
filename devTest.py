@@ -197,9 +197,44 @@ def paints():
     plt.grid(True)
     plt.show()
 
+def paintPlot():
+    import matplotlib.pyplot as plt
+    # 方法和数据
+    methods = ['LSTMVAE', 'LSTMAE', 'NASALSTM', 'TRANAD', 'IFOREST', 'TCNAE']
+    data = {
+        'D-7': [0.29337712096332785, 0.2870826491516147, 0.5265835665225134, 0.2870826491516147, 0.7126405264601042,
+                0.3548895899053628],
+        'D-9': [0.7317854283426741, 0.7317854283426741, 0.7317854283426741, 0.7317854283426741, 0.7200956937799043,
+                0.036193574623830826],
+        'S-1': [0.01221264367816092, 0.008935219657483246, 0.11308861698183166, 0.008935219657483246,
+                0.20605069501226492, 0.6128318584070797],
+        'A-6': [0.775, 0.675, 0.675, 0.8, 0.058823529411764705, 0.009051821679112922]
+    }
+    # plt.rcParams.update({'font.size': 28})
+    plt.rcParams.update({'font.family': 'Times New Roman'})
+    # 绘制柱状图
+    fig, ax = plt.subplots(figsize=(20, 6))
+    bar_width = 0.12
+    index = range(len(data))
+    colors = ['#8ECFC9', '#FA7F6F','#FFBE7A', '#82B0D2', '#BEB8DC', '#2878B5']
+    for i, method in enumerate(methods):
+        values = [data[key][i] for key in data]
+        plt.bar([p + bar_width * i - 1.5*bar_width for p in index], values, bar_width, label=method, color=colors[i])
+
+    # 设置 x 轴标签和标题
+    plt.xlabel('SMAP',fontsize=24)
+    plt.ylabel('F1',fontsize=24)
+    plt.title('')
+    plt.grid(axis='y')
+    plt.xticks([p + 1 * bar_width for p in index], data.keys(),fontsize=18)
+    plt.yticks(fontsize=18)  # 设置 y 轴刻度字体大小为10
+    plt.legend()
+    plt.savefig("fig1.png",dpi=450)
+    plt.show()
+
 
 if __name__ == '__main__':
-    paints()
+    paintPlot()
     # args = parseParams()
     # config = getConfig(args=args)
     # print(config)
@@ -286,17 +321,17 @@ if __name__ == '__main__':
     #
 
 
-    data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
-
-    data = data.numpy()
-    print(data )
+    # data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
     #
-    print(data.shape)
-
-
-    res = sampleFromWindowData(data,2)
-
-    print(res)
+    # data = data.numpy()
+    # print(data )
+    # #
+    # print(data.shape)
+    #
+    #
+    # res = sampleFromWindowData(data,2)
+    #
+    # print(res)
 
     #
     #
@@ -361,3 +396,11 @@ if __name__ == '__main__':
     # data = minMaxNormalization(data)
     # print(data)
     #
+
+    #D-7 D-9  S-1 A-6
+    lstmvae = [0.29337712096332785,0.7317854283426741,0.01221264367816092,0.775]
+    lstmae = [0.2870826491516147,0.7317854283426741,0.008935219657483246,0.675]
+    nasalstm = [0.5265835665225134,0.7317854283426741,0.11308861698183166, 0.675]
+    tranad = [0.2870826491516147,0.7317854283426741,0.008935219657483246,0.8]
+    iforest = [0.7126405264601042,0.7200956937799043,0.20605069501226492,0.058823529411764705]
+    tcnae = [0.3548895899053628,0.036193574623830826,0.6128318584070797,0.009051821679112922]
