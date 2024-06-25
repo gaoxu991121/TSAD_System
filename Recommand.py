@@ -24,12 +24,19 @@ def getSimilarity(origin_sample,new_sample):
     :param new_sample:
     :return:
     '''
-    prob_origin_sample = Softmax(origin_sample)
-    prob_new_sample = Softmax(new_sample)
+    len_new_sample = len(new_sample)
+    len_origin_sample = len(origin_sample)
+    prob_origin_sample_hist, bins = np.histogram(origin_sample, bins=np.arange(len_origin_sample))
+    # 计算概率分布
+    prob_prob_origin_sample_dist = prob_origin_sample_hist / len_origin_sample
 
-    kl = KLDivergence(prob_origin_sample,prob_new_sample)
+    prob_new_sample_hist, bins = np.histogram(new_sample, bins=np.arange(len_new_sample))
+    # 计算概率分布
+    prob_new_sample_dist = prob_new_sample_hist / len_new_sample
 
-    js = JSDivergence(prob_origin_sample,prob_new_sample)
+    kl = KLDivergence(prob_prob_origin_sample_dist,prob_new_sample_dist )
+
+    js = JSDivergence(prob_prob_origin_sample_dist,prob_new_sample_dist )
 
     return 1 / ((kl + js) * 0.5 + 1e-6)
 
@@ -293,6 +300,23 @@ def convertRecToWindow(dataset = "WADI",window_size = 100):
     data_files = os.listdir(recom_dataset_path + "/train")
     for file in data_files:
         writeWindowDataset(base_path=recom_dataset_path, filename=file, window_size=window_size)
+
+def convertLabelToWindow(dataset = "WADI",window_size = 100):
+    # 分割出新旧数据后，转变数据为滑动窗口
+    mode = "old"
+    recom_dataset_path = "./RecomData/" + mode + "/" + dataset
+    data_files = os.listdir(recom_dataset_path + "/train")
+    for file in data_files:
+        writeLabelWindow(base_path=recom_dataset_path, filename=file, window_size=window_size)
+
+    mode = "new"
+    recom_dataset_path = "./RecomData/" + mode + "/" + dataset
+    data_files = os.listdir(recom_dataset_path + "/train")
+    for file in data_files:
+        writeLabelWindow(base_path=recom_dataset_path, filename=file, window_size=window_size)
+
+
+
 def processWADI(dataset,step):
 
     dataset_split_config = getDatasetSplitConfig()
@@ -546,7 +570,22 @@ def datasetProcess():
 
 
 
+def writeLabelWindow(base_path, filename, window_size):
+    '''
+        针对单个地址转化窗口保存，window_size由config指定
+        '''
 
+    label = np.load(base_path + "/label/" + filename)
+
+    label = convertToSlidingWindow(label, window_size=window_size)
+
+    print("label shape:", label.shape)
+
+
+    savepath_label = base_path + "/window/label/"
+
+    checkHolderExist(savepath_label)
+    np.save(savepath_label + "/" + filename, label)
 def writeWindowDataset(base_path,filename,window_size):
     '''
     针对单个地址转化窗口保存，window_size由config指定
@@ -740,6 +779,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
     # new_window_samples = unique(new_window_samples)
 
     method_recommond_score = []
+    method_score_map = {}
 
     for method in method_list:
         score_path = "./RecomData/scores/old/" + dataset + "/" + old_filename + "/" + method + ".npy"
@@ -750,15 +790,15 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
         total_dataset_recommond_score = getDatasetSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores,old_label_samples = old_label_samples,threshold = threshold)
         print("method:",method," score:",total_dataset_recommond_score)
-
+        method_score_map[method] = total_dataset_recommond_score
         method_recommond_score.append(total_dataset_recommond_score)
 
 
     max_score_index = np.array(method_recommond_score).argmax(axis=0)
     max_score = np.array(method_recommond_score).max(axis=0)
-
+    method_score_map = dict(sorted(method_score_map.items(), key=lambda x: x[1], reverse=True))
     recommon_method = method_list[max_score_index]
-    return recommon_method,max_score
+    return recommon_method,max_score,method_score_map
 
 
 def recommendAll():
@@ -772,7 +812,7 @@ def recommendAll():
         if isonly:
             old_filename = dataset
             new_filename = dataset
-            recommond_method,max_score = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100,threshold = 0.5)
+            recommond_method,max_score,rank_map = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100,threshold = 0.5)
             file_recommond_method_list.append((dataset, dataset + ".npy", recommond_method))
             print("recommond method:", recommond_method)
         else:
@@ -791,7 +831,7 @@ def recommendAll():
                 total_max_score = 0
                 for old_filename in old_data_files:
                     print("old_filename:", old_filename)
-                    recommond_method, max_score = sampleAndMatch(dataset, old_filename=old_filename.split(".")[0],
+                    recommond_method, max_score,rank_map = sampleAndMatch(dataset, old_filename=old_filename.split(".")[0],
                                                                 new_filename=new_filename.split(".")[0], method_list=method_list,
                                                                 sample_num=100,threshold = 0.5)
                     print("recommond method:",recommond_method)
@@ -862,13 +902,20 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
+    dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+                   ("PMS", True), ("MSL", False), ("DMDS", True)]
+    for dataset,isonly in dataset_list:
+        convertLabelToWindow(dataset,100)
+
+    convertLabelToWindow("WADI",30)
+    convertLabelToWindow("SWAT",30)
     # convertRecToWindow("WADI",30)
     # convertRecToWindow("SWAT",30)
 
     # datasetProcess()
     # evaluateAllDaset(mode="old")
 
-    recommendAll()
+    # recommendAll()
 
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
