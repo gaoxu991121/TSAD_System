@@ -33,7 +33,105 @@ def getSimilarity(origin_sample,new_sample):
 
     return 1 / ((kl + js) * 0.5 + 1e-6)
 
-def calculateSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples):
+# def calculateSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples,threshold = 0.5):
+#
+#     '''
+#     计算新数据列表和旧数据列表的相似性，返回列表
+#     :param origin_sample_list: 需要比较的旧数据的样本列表,即窗口列表
+#     :param new_sample_list: 需要比较的新数据的样本列表,即窗口列表
+#     :return:返回列表格式，每个新数据样本对应的相似性最大的旧数据样本的Index以及相似性数值。 [(max_similarity_index,max_similarity)]
+#     '''
+#
+#     total_similarity = 0
+#
+#     result = []
+#     for new_index,new_sample in enumerate(new_sample_list):
+#         max_similarity = 0
+#         max_similarity_index = 0
+#         for origin_index,origin_sample in enumerate(origin_sample_list):
+#
+#             similarity = getSimilarity(origin_sample,new_sample)
+#             if similarity > max_similarity:
+#                 max_similarity = similarity
+#                 max_similarity_index = origin_index
+#
+#         total_similarity += max_similarity
+#
+#         result.append((max_similarity_index,max_similarity))
+#
+#     return result,total_similarity
+
+
+def getMatrixKey(sample):
+    first = np.mean(sample[0])
+    last = np.mean(sample[-1])
+    mean_all = np.mean(sample)
+    var_all = np.var(sample)
+
+    mean_all= np.floor(mean_all * 100)   # 先乘以10，再使用floor，然后再除以10
+    var_all = np.floor(var_all * 100)
+    last  = np.floor(last * 100)
+    first = np.floor(first * 100)
+    res = f"{mean_all}{var_all}{last}{first}"
+    return res.replace(".","-")
+
+
+def getDistinctAndNum(sample_all) -> dict:
+
+    result = {}
+    for new_sample in sample_all:
+        new_key = getMatrixKey(new_sample)
+        if result.get(new_key) == None:
+            result[new_key] = countSame(new_sample,sample_all)
+
+    return result
+
+def getMatchScore(sample,ori_sample_list,threshold,anomaly_score):
+    m_dec = 0
+    for index,ori_sample in enumerate(ori_sample_list):
+        similarity = getSimilarity(sample, ori_sample)
+        if similarity < threshold:
+            m_dec +=  np.sum(threshold * anomaly_score + (1 - threshold)*(1-anomaly_score))
+
+
+
+    return m_dec
+
+
+
+def calculateSimilarityCounts(sample,ori_sample_list,threshold):
+    counts = 0
+    similar_sample_index_list = []
+
+    for ori_sample in ori_sample_list:
+        similarity = getSimilarity(sample,ori_sample)
+        if similarity < threshold:
+            counts += 1
+            similar_sample_index_list.append(getMatrixKey(ori_sample))
+
+    return counts,similar_sample_index_list
+
+
+
+def unique(array_list):
+    # 获取数组形状
+    unique_arrays = {tuple(map(tuple, array)): array for array in array_list}
+
+    # 提取去重后的 NumPy 数组
+    unique_array_list = list(unique_arrays.values())
+
+    return unique_array_list
+
+
+def getDatasetDetectability(origin_sample_list,new_sample_list,old_anomaly_scores,threshold):
+    total_dec = 0
+    for new_index, new_sample in enumerate(new_sample_list):
+        m_dec = getMatchScore(sample = new_sample,ori_sample_list = origin_sample_list,threshold = threshold,anomaly_score = old_anomaly_scores)
+        total_dec += m_dec
+    return total_dec
+
+
+def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples,threshold = 0.5):
 
     '''
     计算新数据列表和旧数据列表的相似性，返回列表
@@ -42,26 +140,44 @@ def calculateSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,ol
     :return:返回列表格式，每个新数据样本对应的相似性最大的旧数据样本的Index以及相似性数值。 [(max_similarity_index,max_similarity)]
     '''
 
-    total_similarity = 0
 
-    result = []
+
+
+    new_counts_map = getDistinctAndNum(new_sample_list)
+
+    ori_len = len(origin_sample_list)
+    new_len = len(new_sample_list)
+
+
+    p = np.zeros(len(new_counts_map.values()))
+    for key,item in enumerate(new_counts_map.values()):
+        p[key] = item
+    p = Softmax(p)
+
+    q = np.zeros_like(p)
+
+
+    total_c = 0
+    c_list = []
+
+
+
     for new_index,new_sample in enumerate(new_sample_list):
-        max_similarity = 0
-        max_similarity_index = 0
-        for origin_index,origin_sample in enumerate(origin_sample_list):
 
-            similarity = getSimilarity(origin_sample,new_sample)
-            if similarity > max_similarity:
-                max_similarity = similarity
-                max_similarity_index = origin_index
+        counts,similar_sample_index_list = calculateSimilarityCounts(new_sample, origin_sample_list, threshold)
+        q[new_index] = counts
+        total_c += counts
+        c_list = list(set(c_list + similar_sample_index_list))
 
-        total_similarity += max_similarity
+    len_cd1 =  len(c_list)
 
-        result.append((max_similarity_index,max_similarity))
+    q = q / (ori_len - len_cd1 + total_c )
 
-    return result,total_similarity
+    dataset_similarity = 1 / (p * np.log(p/q)).sum()
+    m_dec_total = getDatasetDetectability(origin_sample_list, new_sample_list, old_anomaly_scores, threshold)
+    total_similarity = dataset_similarity * m_dec_total
 
-
+    return total_similarity
 
 def getConfigs():
     config = {
@@ -586,7 +702,7 @@ def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = np
 
     return results,indices
 
-def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 100):
+def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 100,threshold = 0.5):
     print("sample - dataset:", dataset)
     dataset_old_path = "./RecomData/old/" + dataset + "/window/test/" + old_filename + ".npy"
     dataset_new_path = "./RecomData/new/" + dataset + "/window/test/" + new_filename + ".npy"
@@ -600,6 +716,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     old_window_samples,old_indices = sampleFromWindowData(old_window_data,sample_num)
     new_window_samples,new_indices = sampleFromWindowData(new_window_data,sample_num)
+    new_window_samples = unique(new_window_samples)
 
     method_recommond_score = []
 
@@ -610,9 +727,10 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
         anomaly_scores_samples,_ = sampleFromWindowData(old_window_data,sample_num,indices=old_indices)
         old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
 
-        result_list,total_recommond_score = calculateSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores,old_label_samples = old_label_samples)
+        total_dataset_recommond_score = getDatasetSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores,old_label_samples = old_label_samples,threshold = threshold)
 
-        method_recommond_score.append(total_recommond_score)
+
+        method_recommond_score.append(total_dataset_recommond_score)
 
 
     max_score_index = np.array(method_recommond_score).argmax(axis=0)
@@ -633,7 +751,7 @@ def recommendAll():
         if isonly:
             old_filename = dataset
             new_filename = dataset
-            recommond_method,max_score = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100)
+            recommond_method,max_score = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100,threshold = 0.5)
             file_recommond_method_list.append((dataset, dataset + ".npy", recommond_method))
             print("recommond method:", recommond_method)
         else:
@@ -654,7 +772,7 @@ def recommendAll():
                     print("old_filename:", old_filename)
                     recommond_method, max_score = sampleAndMatch(dataset, old_filename=old_filename.split(".")[0],
                                                                 new_filename=new_filename.split(".")[0], method_list=method_list,
-                                                                sample_num=100)
+                                                                sample_num=100,threshold = 0.5)
                     print("recommond method:",recommond_method)
                     if max_score > total_max_score:
                         total_max_score = max_score
@@ -696,8 +814,17 @@ def getEvaluationResult(mode = "old",dataset_list = [],method_list = []):
 
     return result
 
+def countSame(sample,all_sample):
+    count = np.sum(np.all(sample == all_sample, axis=(1, 2)))
+    return count
 
-
+def discretize(data):
+    """
+    将形状为[batch, window, channel]数值离散化
+    """
+    # 创建一个存储离散化结果的新数组
+    data = np.floor(data * 10) / 10  # 先乘以10，再使用floor，然后再除以10
+    return data
 
 if __name__ == '__main__':
 
@@ -713,9 +840,9 @@ if __name__ == '__main__':
     # convertRecToWindow("SWAT",30)
 
     # datasetProcess()
-    evaluateAllDaset(mode="new")
+    # evaluateAllDaset(mode="old")
 
-    # recommendAll()
+    recommendAll()
 
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"

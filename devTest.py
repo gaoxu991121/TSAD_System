@@ -226,59 +226,52 @@ def paintPlot():
         values = [data[key][i] for key in data]
         plt.bar([p + bar_width * i - 1.5*bar_width for p in index], values, bar_width, label=method, color=colors[i])
 
-def plotDataset(dataset,filename,mode = "train" ):
+def plotFig3():
     import matplotlib.pyplot as plt
     # 方法和数据
-    index = 6
-    methods = ['LSTMVAE', 'LSTMAE', 'NASALSTM', 'TRANAD', 'IFOREST', 'TCNAE']
+    index = 7
+    methods = ['LSTMVAE', 'LSTMAE', 'NASALSTM', 'TRANAD', 'IFOREST', 'DAGMM','TRANSFORMER']
     data = {
-        'D-7': [0.29337712096332785, 0.2870826491516147, 0.5265835665225134, 0.2870826491516147, 0.7126405264601042,
-                0.3548895899053628],
-        'D-9': [0.7317854283426741, 0.7317854283426741, 0.7317854283426741, 0.7317854283426741, 0.7200956937799043,
-                0.036193574623830826],
-        'S-1': [0.01221264367816092, 0.008935219657483246, 0.11308861698183166, 0.008935219657483246,
-                0.20605069501226492, 0.6128318584070797],
-        'A-6': [0.775, 0.675, 0.675, 0.8, 0.058823529411764705, 0.009051821679112922]
+        '1-1': [0.14584129410266208,  0.1334240980258679, 0.19299343134188301, 0.15530142594945645,0.19003979259616544,
+                0.2233468286099865,0.2188778492109877],
+        '1-2': [0.3376251788268956, 0.3328591749644381,  0.2674897119341564, 0.3447761194029851,  0.07539118065433854,
+                0.2619047619047619,0.20334507042253522],
+        '1-6': [0.38741077222582737, 0.5962099125364432, 0.7113428943937419, 0.5287406757349715,
+                0.35806182121971597, 0.6230125523012552,0.5325826103009046],
+        '1-7': [0.19161211583268611, 0.30686936936936937, 0.4928282456785583, 0.4216791979949875, 0.139186032214435, 0.1549038308694961, 0.5242130750605327]
     }
     # plt.rcParams.update({'font.size': 28})
     plt.rcParams.update({'font.family': 'Times New Roman'})
     # 绘制柱状图
     fig, ax = plt.subplots(figsize=(20, 6))
-    bar_width = 0.12
+    bar_width = 0.1
+    index = range(len(data))
+    colors = ['#32B897', '#D8383A','#FFBE7A', '#82B0D2', '#BEB8DC', '#2878B5', '#96C37D']
+    for i, method in enumerate(methods):
+        values = [data[key][i] for key in data]
+        plt.bar([p + bar_width * i - 2*bar_width for p in index], values,
+                bar_width, label=method, color=colors[i])
+
+    # 标注排名
+    for j, key in enumerate(data):
+        values = [data[key][i] for i in range(len(methods))]
+        sorted_values = sorted(values, reverse=True)
+        for i, value in enumerate(values):
+            rank = sorted_values.index(value) + 1
+            ax.text(j + (i - 26) * bar_width, value + 0, f'{rank}', ha='center', va='bottom', color='black', fontsize=12)
+
+
     # 设置 x 轴标签和标题
-    plt.xlabel('SMAP',fontsize=24)
+    plt.xlabel('SMD',fontsize=24)
     plt.ylabel('F1',fontsize=24)
     plt.title('')
     plt.grid(axis='y')
     plt.xticks([p + 1 * bar_width for p in index], data.keys(),fontsize=18)
     plt.yticks(fontsize=18)  # 设置 y 轴刻度字体大小为10
     plt.legend()
-    plt.savefig("fig1.png",dpi=450)
+    plt.savefig("fig1.pdf")
     plt.show()
 
-    base_path = "./Data/" + dataset + "/" + mode + "/"
-    data = pd.read_csv(base_path+filename,header=None)
-    data = data.values
-
-    print("shape:",data.shape)
-    channels = data.shape[-1]
-
-    data = data[:,113]
-
-    plt.figure(dpi=300, figsize=(20, 5))
-    plt.plot(data[:300000])
-
-    plt.plot(data[900000:1200000] - 3 )
-
-
-
-    # 隐藏 X 轴和 Y 轴的标签
-    plt.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False, labelbottom=False,
-                    labelleft=False)
-
-    plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
-
-    plt.show()
 
 def plotFig2(dataset,filename,mode = "test" ):
 
@@ -316,9 +309,47 @@ def plotFig2(dataset,filename,mode = "test" ):
 
     plt.show()
 
+def countSame(sample,all_sample):
+    count = np.sum(np.all(sample == all_sample, axis=(1, 2)))
+    return count
+
+def discretize(data):
+    """
+    将形状为[batch, window, channel]数值离散化
+    """
+    # 创建一个存储离散化结果的新数组
+    data = np.floor(data * 10) / 10  # 先乘以10，再使用floor，然后再除以10
+    return data
+
+def getMatrixKey(sample):
+    last = np.mean(sample[-1])
+    mean_all = np.mean(sample)
+    var_all = np.var(sample)
+
+    mean_all= np.floor(mean_all * 100)   # 先乘以10，再使用floor，然后再除以10
+    var_all = np.floor(var_all * 100)
+    last  = np.floor(last * 100)
+    res = f"{mean_all}{var_all}{last}"
+    return res.replace(".","-")
+
+
+def unique(array):
+    # 获取数组形状
+    batch, window, channel = array.shape
+
+    # 展平每个样本
+    flattened_samples = array.reshape(batch, -1)
+
+    # 使用字典去重并保持顺序
+    unique_samples = list({tuple(sample): sample for sample in flattened_samples}.values())
+
+    # 将去重后的样本重构为三维数组
+    unique_array = np.array(unique_samples).reshape(-1, window, channel)
+    return unique_array
+
 
 if __name__ == '__main__':
-    pass
+    # plotFig3()
     # args = parseParams()
     # config = getConfig(args=args)
     # print(config)
@@ -335,13 +366,40 @@ if __name__ == '__main__':
     #get model
     # model = RevIN(4,affine=False)
     #
-    # data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
+    # data = torch.tensor([[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]], [[1, 2.5, 3,9.1], [7, 8.3, 7,8.5], [4.0, 6.5, 6,7.4]], [[1.4, 2.2, 3,4], [8.7, 9.8, 10,6], [4.2, 6.3, 6,7]],[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]],[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]]]).numpy()
+    # data = data / 10
     # print(data)
     # print(data.shape)
+    # #
+    # # model = MultiHeadAttention(4,2)
+    # # print(model(data)[0].shape)
+    # # print(model(data,mode="norm"))
+    # res = discretize(data)
+    # print(res)
     #
-    # model = MultiHeadAttention(4,2)
-    # print(model(data)[0].shape)
-    # print(model(data,mode="norm"))
+    # print(countSame(data[0],data))
+    # print(getMatrixKey(res))
+    # print(unique(res))
+
+    import numpy as np
+
+    # 示例列表，每个元素是一个 [window, channel] 的 NumPy 数组
+    array_list = [np.array([[1, 2, 3], [4, 5, 6]]),
+                  np.array([[1, 2, 3], [4, 5, 6]]),  # 重复
+                  np.array([[7, 8, 9], [10, 11, 12]])]
+
+    # 将每个 NumPy 数组转换为元组并存储在字典中去重
+    unique_arrays = {tuple(map(tuple, array)): array for array in array_list}
+
+    # 提取去重后的 NumPy 数组
+    unique_array_list = list(unique_arrays.values())
+
+    # 输出结果
+    print("原始列表长度:", len(array_list))
+    print("去重后的列表长度:", len(unique_array_list))
+    print("去重后的列表:")
+
+    print(unique_array_list)
 
 
     # print(data.shape)
