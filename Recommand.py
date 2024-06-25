@@ -141,7 +141,8 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     :param new_sample_list: 需要比较的新数据的样本列表,即窗口列表
     :return:返回列表格式，每个新数据样本对应的相似性最大的旧数据样本的Index以及相似性数值。 [(max_similarity_index,max_similarity)]
     '''
-
+    origin_sample_list = batchDiscretize(origin_sample_list)
+    new_sample_list = batchDiscretize(new_sample_list)
 
 
 
@@ -162,8 +163,8 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     total_c = 0
     c_list = []
 
-    new_sample_list = unique(new_sample_list)
 
+    new_sample_list = unique(new_sample_list)
 
     for new_index,new_sample in enumerate(new_sample_list):
 
@@ -829,6 +830,11 @@ def countSame(sample,all_sample):
     count = np.sum(np.all(sample == all_sample, axis=(1, 2)))
     return count
 
+def batchDiscretize(all_sample):
+    result = []
+    for item in all_sample:
+        result.append(discretize(item))
+    return result
 def discretize(data):
     """
     将形状为[batch, window, channel]数值离散化
