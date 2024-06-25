@@ -905,7 +905,7 @@ if __name__ == '__main__':
     dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
     for dataset,isonly in dataset_list:
-        convertLabelToWindow(dataset,100)
+        convertLabelToWindow(dataset,30)
 
     convertLabelToWindow("WADI",30)
     convertLabelToWindow("SWAT",30)
