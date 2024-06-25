@@ -23,6 +23,11 @@ from Utils.DistanceUtil import KLDivergence, EuclideanDistance, MahalanobisDista
 from Utils.EvalUtil import findSegment
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
+import matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
+matplotlib.use('TkAgg')
+
 
 
 def parseParams():
@@ -221,6 +226,25 @@ def paintPlot():
         values = [data[key][i] for key in data]
         plt.bar([p + bar_width * i - 1.5*bar_width for p in index], values, bar_width, label=method, color=colors[i])
 
+def plotDataset(dataset,filename,mode = "train" ):
+    import matplotlib.pyplot as plt
+    # 方法和数据
+    index = 6
+    methods = ['LSTMVAE', 'LSTMAE', 'NASALSTM', 'TRANAD', 'IFOREST', 'TCNAE']
+    data = {
+        'D-7': [0.29337712096332785, 0.2870826491516147, 0.5265835665225134, 0.2870826491516147, 0.7126405264601042,
+                0.3548895899053628],
+        'D-9': [0.7317854283426741, 0.7317854283426741, 0.7317854283426741, 0.7317854283426741, 0.7200956937799043,
+                0.036193574623830826],
+        'S-1': [0.01221264367816092, 0.008935219657483246, 0.11308861698183166, 0.008935219657483246,
+                0.20605069501226492, 0.6128318584070797],
+        'A-6': [0.775, 0.675, 0.675, 0.8, 0.058823529411764705, 0.009051821679112922]
+    }
+    # plt.rcParams.update({'font.size': 28})
+    plt.rcParams.update({'font.family': 'Times New Roman'})
+    # 绘制柱状图
+    fig, ax = plt.subplots(figsize=(20, 6))
+    bar_width = 0.12
     # 设置 x 轴标签和标题
     plt.xlabel('SMAP',fontsize=24)
     plt.ylabel('F1',fontsize=24)
@@ -232,9 +256,69 @@ def paintPlot():
     plt.savefig("fig1.png",dpi=450)
     plt.show()
 
+    base_path = "./Data/" + dataset + "/" + mode + "/"
+    data = pd.read_csv(base_path+filename,header=None)
+    data = data.values
+
+    print("shape:",data.shape)
+    channels = data.shape[-1]
+
+    data = data[:,113]
+
+    plt.figure(dpi=300, figsize=(20, 5))
+    plt.plot(data[:300000])
+
+    plt.plot(data[900000:1200000] - 3 )
+
+
+
+    # 隐藏 X 轴和 Y 轴的标签
+    plt.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False, labelbottom=False,
+                    labelleft=False)
+
+    plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
+
+    plt.show()
+
+def plotFig2(dataset,filename,mode = "test" ):
+
+    base_path = "./Data/" + dataset + "/" + mode + "/"
+    label_path =    "./Data/" + dataset + "/label/"
+    label = pd.read_csv(label_path+filename,header=None)
+    data = pd.read_csv(base_path+filename,header=None)
+    data = data.values
+
+    print("shape:",data.shape)
+    channels = data.shape[-1]
+    data_1 = data[:, 111]
+    data_2 = data[:,113]
+    data_3 = data[:, 114]
+
+    data_1 = minMaxScaling(data_1,data_1.min(),data_1.max())
+    data_2 = minMaxScaling(data_2,data_2.min(),data_2.max())
+    data_3 = minMaxScaling(data_3,data_3.min(),data_3.max())
+
+    plt.figure(dpi=300, figsize=(20, 10))
+    plt.plot(data_1)
+
+    plt.plot(data_2 -3)
+
+    plt.plot(data_3 - 6)
+    plt.plot(label - 9)
+
+
+
+    # 隐藏 X 轴和 Y 轴的标签
+    plt.tick_params(axis='both', which='both', bottom=False, top=False, left=False, right=False, labelbottom=False,
+                    labelleft=False)
+
+    plt.grid(True, which='major', axis='both', linestyle='-', linewidth=0.5)
+
+    plt.show()
+
 
 if __name__ == '__main__':
-    paintPlot()
+    pass
     # args = parseParams()
     # config = getConfig(args=args)
     # print(config)
@@ -319,88 +403,3 @@ if __name__ == '__main__':
     #               save_path=plot_path + "/result.pdf", segments=findSegment(label),
     #               threshold=threshold)
     #
-
-
-    # data = torch.tensor([[[1.0, 2.0, 3.0,5.0], [4.0, 6.0, 6,7], [4.0, 6.0, 6,7]], [[1, 2, 3,9], [7, 8, 7,8], [4.0, 6.0, 6,7]], [[1, 2, 3,4], [17, 18, 13,6], [4.0, 6.0, 6,7]]])
-    #
-    # data = data.numpy()
-    # print(data )
-    # #
-    # print(data.shape)
-    #
-    #
-    # res = sampleFromWindowData(data,2)
-    #
-    # print(res)
-
-    #
-    #
-    # print("-------------------")
-    #
-    #
-    # data = minMaxNormalization(data,0,1)
-    # print(data)
-    #
-    # data_2 = minMaxNormalization(data_2, 0, 1)
-    # print(data_2)
-
-
-    # res = EuclideanDistance(data,data_2)
-    # print("res:",res)
-    # data = F.softmax(data, dim=-1)
-    # print(data)
-    # print(data.shape)
-    #
-    # data_2 = F.softmax(data_2, dim=-1)
-    # print(data_2)
-    #
-    # def test(p,q):
-    #     print("p:",p)
-    #     print("log sub:",(p.log() - q.log()))
-    #     loss_pointwise = p * (p.log() - q.log())
-    #     print("loss_pointwise:",loss_pointwise)
-    #     loss = loss_pointwise.sum(dim=-1).mean()
-    #     return loss
-    # print(test(data,data_2))
-    #
-    #
-    # data = data.numpy()
-    # data_2 = data_2.numpy()
-    # res = KLDivergence(data,data_2)
-    # print(res)
-    #
-    # data = data.numpy()
-    # data_2 = data_2.numpy()
-    # print(data.shape)
-    # from scipy.spatial.distance import mahalanobis
-    #
-    # # sample_x = np.array([15,46,13])
-    # # sample_y = np.array([11,9,35])
-    # # x = np.array([data,data_2]).T
-    # # print("x shape:",x.shape)
-    # # # 算b与d马氏距离
-    # # cov = np.cov(x)
-    # # print("cov shape:",cov.shape)
-    # # print(mahalanobis(data_2,data_2,cov))
-    # #
-    # # print(data - data_2)
-    # res = CosineDistance(data,data_2)
-    # print(res)
-
-    # data = pd.read_csv(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\train\PMS.csv",header = None)
-    # data = data.values
-    # data = data[:10]
-    #
-    # print(data)
-    # print("------------------")
-    # data = minMaxNormalization(data)
-    # print(data)
-    #
-
-    #D-7 D-9  S-1 A-6
-    lstmvae = [0.29337712096332785,0.7317854283426741,0.01221264367816092,0.775]
-    lstmae = [0.2870826491516147,0.7317854283426741,0.008935219657483246,0.675]
-    nasalstm = [0.5265835665225134,0.7317854283426741,0.11308861698183166, 0.675]
-    tranad = [0.2870826491516147,0.7317854283426741,0.008935219657483246,0.8]
-    iforest = [0.7126405264601042,0.7200956937799043,0.20605069501226492,0.058823529411764705]
-    tcnae = [0.3548895899053628,0.036193574623830826,0.6128318584070797,0.009051821679112922]
