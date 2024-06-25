@@ -746,7 +746,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
         old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
 
         total_dataset_recommond_score = getDatasetSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores,old_label_samples = old_label_samples,threshold = threshold)
-
+        print("method:",method," score:",total_dataset_recommond_score)
 
         method_recommond_score.append(total_dataset_recommond_score)
 
