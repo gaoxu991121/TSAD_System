@@ -184,7 +184,10 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     q = q / (ori_len - len_cd1 + total_c )
 
     dataset_similarity = 1 / (p * np.log(p/q)).sum()
+    print("dataset_similarity = ", dataset_similarity)
+
     m_dec_total = getDatasetDetectability(origin_sample_list, new_sample_list, old_anomaly_scores, threshold)
+    print("m_dec_total = ", m_dec_total)
     total_similarity = dataset_similarity * m_dec_total
 
     return total_similarity
