@@ -711,12 +711,19 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     old_window_data = np.load(dataset_old_path)
     new_window_data = np.load(dataset_new_path)
+
+    if len(old_window_data.shape) < 3:
+        old_window_data = old_window_data[:,:,np.newaxis]
+        new_window_data = new_window_data[:, :, np.newaxis]
+
     old_label_data = np.load(dataset_old_label_path)
 
 
     old_window_samples,old_indices = sampleFromWindowData(old_window_data,sample_num)
     new_window_samples,new_indices = sampleFromWindowData(new_window_data,sample_num)
+
     print("new dataset . len: ", len(new_window_samples)," shape:",old_window_samples[0].shape)
+    
     new_window_samples = unique(new_window_samples)
 
     method_recommond_score = []
