@@ -152,19 +152,25 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     new_len = len(new_sample_list)
 
 
-    p = np.zeros(len(new_counts_map.values()))
-    for key,item in enumerate(new_counts_map.values()):
-        p[key] = item
+
+
+    new_sample_list = unique(new_sample_list)
+
+
+    p = np.zeros(len(new_sample_list))
+    for index,item in enumerate(new_sample_list):
+        key = getMatrixKey(item)
+        p[index] = new_counts_map[key]
+
     p = Softmax(p)
 
     q = np.zeros_like(p)
-
 
     total_c = 0
     c_list = []
 
 
-    new_sample_list = unique(new_sample_list)
+
 
     for new_index,new_sample in enumerate(new_sample_list):
 
