@@ -79,10 +79,10 @@ def getMatrixKey(sample):
 def getDistinctAndNum(sample_all) -> dict:
 
     result = {}
-    for new_sample in sample_all:
-        new_key = getMatrixKey(new_sample)
-        if result.get(new_key) == None:
-            result[new_key] = countSame(new_sample,sample_all)
+    for index,new_sample in sample_all:
+        # new_sample_flatten = new_sample.flatten()
+        if result.get(index) == None:
+            result[index] = countSame(new_sample,sample_all)
 
     return result
 
@@ -103,11 +103,12 @@ def calculateSimilarityCounts(sample,ori_sample_list,threshold):
     counts = 0
     similar_sample_index_list = []
 
-    for ori_sample in ori_sample_list:
-        similarity = getSimilarity(sample,ori_sample)
+    for index,ori_sample in enumerate(ori_sample_list):
+        ori_sample = ori_sample.flatten()
+        similarity = getSimilarity(sample.flatten() ,ori_sample)
         if similarity < threshold:
             counts += 1
-            similar_sample_index_list.append(getMatrixKey(ori_sample))
+            similar_sample_index_list.append(index)
 
     return counts,similar_sample_index_list
 
@@ -160,6 +161,7 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     total_c = 0
     c_list = []
 
+    new_sample_list = unique(new_sample_list)
 
 
     for new_index,new_sample in enumerate(new_sample_list):
@@ -698,7 +700,7 @@ def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = np
         indices = np.random.choice(length, sample_num, replace=False)
 
     for sample_index in indices:
-        results.append(data[sample_index].reshape(-1))
+        results.append(data[sample_index])
 
     return results,indices
 
@@ -714,9 +716,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     print("old_window_data shape:", old_window_data.shape)
 
-    if len(old_window_data.shape) < 3:
-        old_window_data = old_window_data[:,:,np.newaxis]
-        new_window_data = new_window_data[:, :, np.newaxis]
+
 
     old_label_data = np.load(dataset_old_label_path)
 
@@ -726,7 +726,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     print("new dataset . len: ", len(new_window_samples)," shape:",old_window_samples[0].shape)
 
-    new_window_samples = unique(new_window_samples)
+    # new_window_samples = unique(new_window_samples)
 
     method_recommond_score = []
 
