@@ -79,10 +79,11 @@ def getMatrixKey(sample):
 def getDistinctAndNum(sample_all) -> dict:
 
     result = {}
-    for index,new_sample in sample_all:
+    for new_sample in sample_all:
         # new_sample_flatten = new_sample.flatten()
-        if result.get(index) == None:
-            result[index] = countSame(new_sample,sample_all)
+        key = getMatrixKey(new_sample)
+        if result.get(key) == None:
+            result[key] = countSame(new_sample,sample_all)
 
     return result
 
