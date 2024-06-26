@@ -89,10 +89,13 @@ def getDistinctAndNum(sample_all) -> dict:
 
 def getMatchScore(sample,ori_sample_list,threshold,anomaly_score,label_samples,params):
     m_dec = 0
+    recall = params["recall"]
+    precision = params["precision"]
+    ratio = params["anomaly_ratio"]
     for index,ori_sample in enumerate(ori_sample_list):
         similarity = getSimilarity(sample, ori_sample)
         if similarity < threshold:
-            m_dec +=  np.sum( np.multiply(label_samples[index],anomaly_score[index] ) + np.multiply((1 - label_samples[index]),(1-anomaly_score[index])) )
+            m_dec +=  np.sum( precision * np.multiply(label_samples[index],anomaly_score[index] ) + ratio * recall * np.multiply((1 - label_samples[index]),(1-anomaly_score[index])) )
 
     return m_dec
 
@@ -612,7 +615,7 @@ def writeWindowDataset(base_path,filename,window_size):
 def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     config = getConfigs()
     #model_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
-    model_list = ["LSTMV2"]
+    model_list = ["DAGMM"]
     # model_list = ["LSTMVAE","PCAAD"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
@@ -711,11 +714,13 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     print("finish training model. start to test model.")
 
 
+
+
 def evaluateAllDaset(mode = "old"):
     # datasets = [("DMDS", True)]
     datasets = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
-    # datasets = [("MSL", False)]
+    datasets = [("SMAP", False)]
     print("start evaluating all")
 
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -739,7 +744,16 @@ def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = np
 
     results = []
     if len(indices) == 0 :
-        indices = np.random.choice(length, sample_num, replace=False)
+        # 计算均匀间隔
+        interval = length // sample_num
+        if interval < sample_num :
+            indices = np.random.choice(length, sample_num, replace=False)
+        else:
+            indexes = []
+            interval_index = random.randint(1,interval+1)-1
+            for i in range(sample_num):
+                indexes.append(interval_index * (i+1))
+            indices = np.concatenate(indexes)
 
     for sample_index in indices:
         results.append(data[sample_index])
@@ -774,14 +788,16 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     method_recommond_score = []
     method_score_map = {}
-    all_params = getEvalCount(mode="old", dataset_list=[dataset], method_list=method_list)
+    all_params = getEvalCount(mode="old", dataset=dataset, method_list=method_list)
+    all_params["anomaly_ratio"] = np.sum(old_label_data)/len(old_label_data)
+    print("anomaly ratio:", all_params["anomaly_ratio"])
     for method in method_list:
         score_path = "./RecomData/scores/old/" + dataset + "/" + old_filename + "/" + method + ".npy"
         anomaly_scores = np.load(score_path)
         anomaly_scores = anomaly_scores[:, np.newaxis]
         anomaly_scores = convertToWindow(anomaly_scores,config["window_size"]).squeeze()
         anomaly_scores_samples,_ = sampleFromWindowData(anomaly_scores,sample_num,indices=old_indices)
-        old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
+        #old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
 
         params = all_params[dataset][old_filename][method]
         
@@ -797,6 +813,27 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
     recommon_method = method_list[max_score_index]
     return recommon_method,max_score,method_score_map
 
+def bordaAggregation(rank_list,method_list):
+    rank_map = {}
+
+    for method in method_list:
+        if rank_map.get(method) == None:
+            rank_map[method] = []
+
+        for rank_file in rank_list:
+            rank_map[method].append(rank_file[method])
+
+
+    num_competitors = len(rank_map.keys())
+
+    scores = {method: 0 for method in method_list}
+
+    for competitor, ranks in rank_map.items():
+        for rank in ranks:
+            scores[competitor] += (num_competitors - rank)
+
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return sorted_scores
 
 def recommendAll():
     dataset_list = [("SMD", False),
@@ -804,14 +841,19 @@ def recommendAll():
     method_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
 
     file_recommond_method_list = []
+
+    dataset_recommond_rank = {}
+
     for dataset,isonly in dataset_list:
         print("recommending dataset:",dataset)
         if isonly:
             old_filename = dataset
             new_filename = dataset
             recommond_method,max_score,rank_map = sampleAndMatch(dataset,old_filename=old_filename,new_filename=new_filename,method_list=method_list,sample_num=100,threshold = 0.5)
-            file_recommond_method_list.append((dataset, dataset + ".npy", recommond_method))
+            file_recommond_method_list.append((dataset, dataset , recommond_method))
+            dataset_recommond_rank[dataset] = rank_map
             print("recommond method:", recommond_method)
+            print("method rank:",rank_map)
         else:
 
 
@@ -821,8 +863,9 @@ def recommendAll():
             old_data_files = os.listdir(old_data_path)
             new_data_files = os.listdir(new_data_path)
 
-
+            file_recommond_rank_list = []
             for new_filename in new_data_files:
+                file_recommond_rank_map = {}
                 print("new_filename:",new_filename)
                 total_rec_method = ""
                 total_max_score = 0
@@ -831,46 +874,68 @@ def recommendAll():
                     recommond_method, max_score,rank_map = sampleAndMatch(dataset, old_filename=old_filename.split(".")[0],
                                                                 new_filename=new_filename.split(".")[0], method_list=method_list,
                                                                 sample_num=100,threshold = 0.5)
+
+                    for (method,score) in rank_map:
+                        if file_recommond_rank_map.get(method) == None:
+                            file_recommond_rank_map[method] = score
+                        else:
+                            file_recommond_rank_map[method] = max(file_recommond_rank_map[method],score)
+
                     print("recommond method:",recommond_method)
                     if max_score > total_max_score:
                         total_max_score = max_score
                         total_rec_method = recommond_method
+
+                file_recommond_rank_list.append(file_recommond_rank_map)
                 file_recommond_method_list.append((dataset,new_filename,total_rec_method))
 
+            aggratated_rank = bordaAggregation(file_recommond_rank_list,method_list)
+            dataset_recommond_rank[dataset] = aggratated_rank
     print("final result:")
     print(file_recommond_method_list)
+    print("dataset_recommond_rank：\n",dataset_recommond_rank)
 
-def getEvalCount(mode = "old",dataset_list = [],method_list = []):
-    path = "./Logs/recommondation/" + mode +"/"
+
+def getEvalCount(mode="old", dataset="", method_list=[]):
+    path = "./Logs/recommondation/" + mode + "/"
     result = {}
-    for dataset,isonly in dataset_list:
 
-        result[dataset] = {}
+    result[dataset] = {}
 
-        files_path = path + dataset
+    files_path = path + dataset
 
-        file_names = os.listdir(files_path)
+    file_names = os.listdir(files_path)
 
-        for file_name in file_names:
-            file_name = file_name.split(".")[0]
+    for file_name in file_names:
+        file_name = file_name.split(".")[0]
 
-            result[dataset][file_name] = {}
+        result[dataset][file_name] = {}
 
-            for method in method_list:
-                result[dataset][file_name][method] = {}
-                eval_path = files_path + "/" + file_name + "/" + method + ".json"
-                with open(eval_path, "r") as file:
-                    data_dict = json.load(file)
+        for method in method_list:
+            result[dataset][file_name][method] = {}
+            eval_path = files_path + "/" + file_name + "/" + method + ".json"
+            with open(eval_path, "r") as file:
+                data_dict = json.load(file)
 
-                result[dataset][file_name][method]["tp"] = data_dict["tp"]
-                result[dataset][file_name][method]["fp"] = data_dict["fp"]
-                result[dataset][file_name][method]["tn"] = data_dict["tn"]
-                result[dataset][file_name][method]["fn"] = data_dict["fn"]
-                result[dataset][file_name][method]["precision"] =  data_dict["tp"] / (data_dict["tp"] + data_dict["fp"])
-                result[dataset][file_name][method]["recall"] = data_dict["tp"] / (data_dict["tp"] + data_dict["fn"])
+            result[dataset][file_name][method]["tp"] = data_dict["ori_tp"]
+            result[dataset][file_name][method]["fp"] = data_dict["ori_fp"]
+            result[dataset][file_name][method]["tn"] = data_dict["ori_tn"]
+            result[dataset][file_name][method]["fn"] = data_dict["ori_fn"]
+            if (data_dict["ori_tp"] + data_dict["ori_fp"]) <= 0 :
+                result[dataset][file_name][method]["precision"] = 0
+            else:
+                result[dataset][file_name][method]["precision"] = data_dict["ori_tp"] / (data_dict["ori_tp"] + data_dict["ori_fp"])
+
+            if (data_dict["ori_tp"] + data_dict["ori_fn"]) <= 0:
+                result[dataset][file_name][method]["recall"] = 0
+            else:
+                result[dataset][file_name][method]["recall"] = data_dict["ori_tp"] / (data_dict["ori_tp"] + data_dict["ori_fn"])
+
+
+            result[dataset][file_name][method]["recall"] = data_dict["ori_tp"] / (data_dict["ori_tp"] + data_dict["ori_fn"])
+            result[dataset][file_name][method]["f1"] = data_dict["ori_f1"]
 
     return result
-
 def getEvaluationResult(mode = "old",dataset_list = [],method_list = []):
     path = "./Logs/recommondation/" + mode +"/"
     result = {}
@@ -941,9 +1006,9 @@ if __name__ == '__main__':
     # convertRecToWindow("SWAT",30)
 
     # datasetProcess()
-    # evaluateAllDaset(mode="old")
+    evaluateAllDaset(mode="old")
 
-    recommendAll()
+    # recommendAll()
 
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
