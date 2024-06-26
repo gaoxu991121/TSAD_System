@@ -707,7 +707,7 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
         config["apa_threshold"] = apa_threshold
         config["pa_threshold"] = pa_threshold
         config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
-        wirteLog(base_path + "/Logs/recommondation/" + mode + "/"  + dataset_name + "/" + filename + "-spec" ,method,config)
+        wirteLog(base_path + "/Logs/recommondation/" + mode + "/"  + dataset_name + "/" + filename ,method,config)
 
 
 
