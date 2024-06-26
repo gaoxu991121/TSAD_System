@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from Preprocess.Normalization import minMaxNormalization
-from Preprocess.Window import convertToSlidingWindow
+from Preprocess.Window import convertToSlidingWindow, convertToWindow
 from Utils.DataUtil import readData
 from Utils.DistanceUtil import KLDivergence, Softmax, JSDivergence
 from Utils.EvalUtil import findSegment, countResult
@@ -24,21 +24,14 @@ def getSimilarity(origin_sample,new_sample):
     :param new_sample:
     :return:
     '''
-    len_new_sample = len(new_sample)
-    len_origin_sample = len(origin_sample)
-    prob_origin_sample_hist, bins = np.histogram(origin_sample, bins=np.arange(len_origin_sample))
-    # 计算概率分布
-    prob_prob_origin_sample_dist = prob_origin_sample_hist / len_origin_sample
+    prob_origin_sample = Softmax(origin_sample + 1e-7)
+    prob_new_sample = Softmax(new_sample + 1e-7)
 
-    prob_new_sample_hist, bins = np.histogram(new_sample, bins=np.arange(len_new_sample))
-    # 计算概率分布
-    prob_new_sample_dist = prob_new_sample_hist / len_new_sample
+    kl = KLDivergence(prob_origin_sample,prob_new_sample)
 
-    kl = KLDivergence(prob_prob_origin_sample_dist,prob_new_sample_dist )
+    # js = JSDivergence(prob_origin_sample,prob_new_sample)
 
-    js = JSDivergence(prob_prob_origin_sample_dist,prob_new_sample_dist )
-
-    return 1 / ((kl + js) * 0.5 + 1e-6)
+    return kl
 
 # def calculateSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples,threshold = 0.5):
 #
@@ -94,14 +87,12 @@ def getDistinctAndNum(sample_all) -> dict:
 
     return result
 
-def getMatchScore(sample,ori_sample_list,threshold,anomaly_score):
+def getMatchScore(sample,ori_sample_list,threshold,anomaly_score,label_samples,params):
     m_dec = 0
     for index,ori_sample in enumerate(ori_sample_list):
         similarity = getSimilarity(sample, ori_sample)
         if similarity < threshold:
-            m_dec +=  np.sum(threshold * anomaly_score + (1 - threshold)*(1-anomaly_score))
-
-
+            m_dec +=  np.sum( np.multiply(label_samples[index],anomaly_score[index] ) + np.multiply((1 - label_samples[index]),(1-anomaly_score[index])) )
 
     return m_dec
 
@@ -132,15 +123,15 @@ def unique(array_list):
     return unique_array_list
 
 
-def getDatasetDetectability(origin_sample_list,new_sample_list,old_anomaly_scores,threshold):
+def getDatasetDetectability(origin_sample_list,new_sample_list,old_anomaly_scores,threshold,label_samples ,params):
     total_dec = 0
     for new_index, new_sample in enumerate(new_sample_list):
-        m_dec = getMatchScore(sample = new_sample,ori_sample_list = origin_sample_list,threshold = threshold,anomaly_score = old_anomaly_scores)
+        m_dec = getMatchScore(sample = new_sample,ori_sample_list = origin_sample_list,threshold = threshold,anomaly_score = old_anomaly_scores,label_samples = label_samples,params = params)
         total_dec += m_dec
     return total_dec
 
 
-def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples,threshold = 0.5):
+def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,old_label_samples,threshold = 0.5,params = {}):
 
     '''
     计算新数据列表和旧数据列表的相似性，返回列表
@@ -150,6 +141,7 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     '''
     origin_sample_list = batchDiscretize(origin_sample_list)
     new_sample_list = batchDiscretize(new_sample_list)
+
 
 
 
@@ -169,7 +161,7 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
         key = getMatrixKey(item)
         p[index] = new_counts_map[key]
 
-    p = Softmax(p)
+    p = Softmax(p + 1e-7)
 
     q = np.zeros_like(p)
 
@@ -189,11 +181,11 @@ def getDatasetSimilarity(origin_sample_list,new_sample_list,old_anomaly_scores,o
     len_cd1 =  len(c_list)
 
     q = q / (ori_len - len_cd1 + total_c )
-
+    q = Softmax(q + 1e-8)
     dataset_similarity = 1 / (p * np.log(p/q)).sum()
     print("dataset_similarity = ", dataset_similarity)
 
-    m_dec_total = getDatasetDetectability(origin_sample_list, new_sample_list, old_anomaly_scores, threshold)
+    m_dec_total = getDatasetDetectability(origin_sample_list, new_sample_list, old_anomaly_scores, threshold,old_label_samples,params)
     print("m_dec_total = ", m_dec_total)
     total_similarity = dataset_similarity * m_dec_total
 
@@ -755,6 +747,7 @@ def sampleFromWindowData(data: np.ndarray,sample_num:int,indices:np.ndarray = np
     return results,indices
 
 def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 100,threshold = 0.5):
+    config = getConfigs()
     print("sample - dataset:", dataset)
     dataset_old_path = "./RecomData/old/" + dataset + "/window/test/" + old_filename + ".npy"
     dataset_new_path = "./RecomData/new/" + dataset + "/window/test/" + new_filename + ".npy"
@@ -773,6 +766,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     old_window_samples,old_indices = sampleFromWindowData(old_window_data,sample_num)
     new_window_samples,new_indices = sampleFromWindowData(new_window_data,sample_num)
+    old_label_samples,new_indices = sampleFromWindowData(old_label_data,sample_num)
 
     print("new dataset . len: ", len(new_window_samples)," shape:",old_window_samples[0].shape)
 
@@ -780,15 +774,18 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     method_recommond_score = []
     method_score_map = {}
-
+    all_params = getEvalCount(mode="old", dataset_list=[dataset], method_list=method_list)
     for method in method_list:
         score_path = "./RecomData/scores/old/" + dataset + "/" + old_filename + "/" + method + ".npy"
         anomaly_scores = np.load(score_path)
-
-        anomaly_scores_samples,_ = sampleFromWindowData(old_window_data,sample_num,indices=old_indices)
+        anomaly_scores = anomaly_scores[:, np.newaxis]
+        anomaly_scores = convertToWindow(anomaly_scores,config["window_size"]).squeeze()
+        anomaly_scores_samples,_ = sampleFromWindowData(anomaly_scores,sample_num,indices=old_indices)
         old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
 
-        total_dataset_recommond_score = getDatasetSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores,old_label_samples = old_label_samples,threshold = threshold)
+        params = all_params[dataset][old_filename][method]
+        
+        total_dataset_recommond_score = getDatasetSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores_samples,old_label_samples = old_label_samples,threshold = threshold,params=params)
         print("method:",method," score:",total_dataset_recommond_score)
         method_score_map[method] = total_dataset_recommond_score
         method_recommond_score.append(total_dataset_recommond_score)
@@ -842,6 +839,37 @@ def recommendAll():
 
     print("final result:")
     print(file_recommond_method_list)
+
+def getEvalCount(mode = "old",dataset_list = [],method_list = []):
+    path = "./Logs/recommondation/" + mode +"/"
+    result = {}
+    for dataset,isonly in dataset_list:
+
+        result[dataset] = {}
+
+        files_path = path + dataset
+
+        file_names = os.listdir(files_path)
+
+        for file_name in file_names:
+            file_name = file_name.split(".")[0]
+
+            result[dataset][file_name] = {}
+
+            for method in method_list:
+                result[dataset][file_name][method] = {}
+                eval_path = files_path + "/" + file_name + "/" + method + ".json"
+                with open(eval_path, "r") as file:
+                    data_dict = json.load(file)
+
+                result[dataset][file_name][method]["tp"] = data_dict["tp"]
+                result[dataset][file_name][method]["fp"] = data_dict["fp"]
+                result[dataset][file_name][method]["tn"] = data_dict["tn"]
+                result[dataset][file_name][method]["fn"] = data_dict["fn"]
+                result[dataset][file_name][method]["precision"] =  data_dict["tp"] / (data_dict["tp"] + data_dict["fp"])
+                result[dataset][file_name][method]["recall"] = data_dict["tp"] / (data_dict["tp"] + data_dict["fn"])
+
+    return result
 
 def getEvaluationResult(mode = "old",dataset_list = [],method_list = []):
     path = "./Logs/recommondation/" + mode +"/"
@@ -902,20 +930,20 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
-    dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
-                   ("PMS", True), ("MSL", False), ("DMDS", True)]
-    for dataset,isonly in dataset_list:
-        convertLabelToWindow(dataset,30)
-
-    convertLabelToWindow("WADI",30)
-    convertLabelToWindow("SWAT",30)
+    # dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+    #                ("PMS", True), ("MSL", False), ("DMDS", True)]
+    # for dataset,isonly in dataset_list:
+    #     convertLabelToWindow(dataset,30)
+    #
+    # convertLabelToWindow("WADI",30)
+    # convertLabelToWindow("SWAT",30)
     # convertRecToWindow("WADI",30)
     # convertRecToWindow("SWAT",30)
 
     # datasetProcess()
     # evaluateAllDaset(mode="old")
 
-    # recommendAll()
+    recommendAll()
 
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
