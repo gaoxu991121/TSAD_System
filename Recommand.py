@@ -721,7 +721,7 @@ def evaluateAllDaset(mode = "old"):
     datasets = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
 
-    datasets = [("SWAT", False),("DMDS", False)]
+    # datasets = [("SWAT", False),("DMDS", False)]
     print("start evaluating all")
 
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -996,19 +996,20 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
-    # dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
-    #                ("PMS", True), ("MSL", False), ("DMDS", True)]
-    # for dataset,isonly in dataset_list:
-    #     convertLabelToWindow(dataset,30)
-    #
-    # convertLabelToWindow("WADI",30)
-    # convertLabelToWindow("SWAT",30)
-    # convertRecToWindow("WADI",30)
-    # convertRecToWindow("SWAT",30)
+    dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+                   ("PMS", True), ("MSL", False), ("DMDS", True)]
+    for dataset,isonly in dataset_list:
+        convertRecToWindow(dataset,10)
+        convertLabelToWindow(dataset,10)
+
+    # convertLabelToWindow("WADI",10)
+    # convertLabelToWindow("SWAT",10)
+    # convertRecToWindow("WADI",10)
+    # convertRecToWindow("SWAT",10)
 
     # datasetProcess()
     evaluateAllDaset(mode="old")
-    evaluateAllDaset(mode="old")
+    evaluateAllDaset(mode="new")
     # recommendAll()
 
 
