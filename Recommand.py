@@ -720,6 +720,7 @@ def evaluateAllDaset(mode = "old"):
     # datasets = [("DMDS", True)]
     datasets = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
+    
     datasets = [("SWAT", False),("DMDS", False)]
     print("start evaluating all")
 
