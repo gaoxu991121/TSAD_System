@@ -180,9 +180,9 @@ class DAGMM(BaseModel):
                 _, x_hat, z, gamma = self.forward(d)
                 # loss = compute.forward(item,x_hat,z,gamma)
                 # print("loss:",loss)
-                l1 = l(x_hat, d)
+                l1, l2 = l(x_hat, d), l(gamma, d)
 
-                loss = torch.mean(l1)
+                loss = torch.mean(l1) + torch.mean(l2)
 
                 running_loss += loss.item()
                 l1s.append(torch.mean(loss).item())
@@ -224,9 +224,9 @@ class DAGMM(BaseModel):
                 d = item
                 _, x_hat, z, gamma = self.forward(d)
 
-                l1 = l(x_hat, d)
+                l1, l2 = l(x_hat, d), l(gamma, d)
 
-                loss = torch.sum(l1,dim=-1)
+                loss = torch.sum(l1,dim=-1) + torch.sum(l2,dim=-1)
                 loss = loss.sum(dim=-1)
                 if len(loss.shape) == 0:
                     loss = loss.unsqueeze(dim=0)

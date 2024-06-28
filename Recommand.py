@@ -720,7 +720,7 @@ def evaluateAllDaset(mode = "old"):
     # datasets = [("DMDS", True)]
     datasets = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
-    datasets = [("SMAP", False)]
+    datasets = [("SWAT", False)]
     print("start evaluating all")
 
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -1007,7 +1007,7 @@ if __name__ == '__main__':
 
     # datasetProcess()
     evaluateAllDaset(mode="old")
-
+    evaluateAllDaset(mode="old")
     # recommendAll()
 
 
