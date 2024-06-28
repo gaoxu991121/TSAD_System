@@ -614,7 +614,7 @@ def writeWindowDataset(base_path,filename,window_size):
 
 def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     config = getConfigs()
-    model_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
+    model_list = ["LSTMVAE","LSTMAE","LSTMV2","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
     # model_list = ["DAGMM"]
     # model_list = ["LSTMVAE","PCAAD"]
     base_path = os.path.dirname(os.path.abspath(__file__))
