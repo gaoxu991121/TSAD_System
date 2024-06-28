@@ -182,7 +182,7 @@ class DAGMM(BaseModel):
                 # print("loss:",loss)
                 l1, l2 = l(x_hat, d), l(gamma, d)
 
-                loss = torch.mean(l1)
+                loss = torch.mean(l1) + torch.mean(l2)
 
                 running_loss += loss.item()
                 l1s.append(torch.mean(loss).item())
@@ -226,7 +226,7 @@ class DAGMM(BaseModel):
 
                 l1, l2 = l(x_hat, d), l(gamma, d)
 
-                loss = torch.sum(l1,dim=-1) 
+                loss = torch.sum(l1,dim=-1) + torch.sum(l2,dim=-1)
                 loss = loss.sum(dim=-1)
                 if len(loss.shape) == 0:
                     loss = loss.unsqueeze(dim=0)
