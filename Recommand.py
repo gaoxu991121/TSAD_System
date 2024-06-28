@@ -620,8 +620,13 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
     window_size = config["window_size"]
-    data_train,data_test,label = readData(dataset_path = base_path + "/RecomData/" + mode + "/" + dataset_name ,filename = filename,file_type = "npy")
-    label = label[window_size - 1:]
+    # data_train,data_test,label = readData(dataset_path = base_path + "/RecomData/" + mode + "/" + dataset_name ,filename = filename,file_type = "npy")
+
+    label = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/label/" + filename + ".npy", header=None).to_numpy().squeeze()
+    data_train = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/train/" + filename + ".npy")
+    data_test = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/test/" + filename + ".npy")
+    #
+    # label = label[window_size - 1:]
 
     input_dim = data_train.shape[-1]
 

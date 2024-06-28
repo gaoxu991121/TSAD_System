@@ -17,7 +17,8 @@ class PCAAD(BaseModel):
         self.model = None
 
     def processData(self, data, shuffle=False):
-
+        if len(data) >= 3:
+            data = data[:,-1,:].squeeze()
         data = instanceNormalization(data,data.shape[-1])
         return data
 

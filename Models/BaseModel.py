@@ -128,7 +128,8 @@ class BaseModel(nn.Module):
         window_size = self.config["window_size"]
         batch_size = self.config["batch_size"]
 
-        data = convertToSlidingWindow(data=data, window_size=window_size)
+        if len(data.shape) < 3:
+            data = convertToSlidingWindow(data=data, window_size=window_size)
 
         if shuffle:
             data = self.shuffle(data)
