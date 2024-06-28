@@ -198,7 +198,7 @@ def getConfigs():
     config = {
             "epoch": 2,
             "batch_size": 128,
-            "window_size": 30,
+            "window_size": 10,
             "identifier": "model-evaluation",
             "hidden_size": 64,
             "latent_size": 32,
