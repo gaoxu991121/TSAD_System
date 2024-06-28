@@ -622,9 +622,7 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     window_size = config["window_size"]
     data_train,data_test,label = readData(dataset_path = base_path + "/RecomData/" + mode + "/" + dataset_name ,filename = filename,file_type = "npy")
     label = label[window_size - 1:]
-    print("data_train shape:",data_train.shape)
-    print("data_test shape:", data_test.shape)
-    print("label shape:", label.shape)
+
     input_dim = data_train.shape[-1]
 
     config["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -718,7 +716,7 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
 
 def evaluateAllDaset(mode = "old"):
     # datasets = [("DMDS", True)]
-    datasets = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+    datasets = [("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
                    ("PMS", True), ("MSL", False), ("DMDS", True)]
 
     # datasets = [("SWAT", False),("DMDS", False)]
@@ -996,11 +994,11 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
-    dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
-                   ("PMS", True), ("MSL", False), ("DMDS", True)]
-    for dataset,isonly in dataset_list:
-        convertRecToWindow(dataset,10)
-        convertLabelToWindow(dataset,10)
+    # dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+    #                ("PMS", True), ("MSL", False), ("DMDS", True)]
+    # for dataset,isonly in dataset_list:
+    #     convertRecToWindow(dataset,10)
+    #     convertLabelToWindow(dataset,10)
 
     # convertLabelToWindow("WADI",10)
     # convertLabelToWindow("SWAT",10)
