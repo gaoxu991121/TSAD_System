@@ -30,7 +30,7 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
                 ax.axvline(x=pair[0], color=colorTransform(131,136,186), linestyle='-.', linewidth=2)  # 使用红色虚线
 
         # if len(labels) > 0:
-        #     ax.plot(x_axis, labels, color='red', label='label', linestyle='--',linewidth=2)
+        #     ax.plot(x_axis, labels, color='red',label='label', linestyle='--',linewidth=2)
 
         if len(segments) > 0:
             for item in segments:

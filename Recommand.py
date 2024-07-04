@@ -626,7 +626,7 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     data_train = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/train/" + filename + ".npy")
     data_test = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/test/" + filename + ".npy")
     #
-    # label = label[window_size - 1:]
+    #label =label[window_size - 1:]
 
     input_dim = data_train.shape[-1]
 
@@ -838,7 +838,6 @@ def bordaAggregation(rank_list,method_list):
 
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return sorted_scores
-
 def recommendAll():
     dataset_list = [("SMD", False),
                     ("PMS", True)]

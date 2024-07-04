@@ -1,3 +1,4 @@
+import json
 import os
 import numpy as np
 import pandas as pd
@@ -31,8 +32,8 @@ def saveCsv():
 
 
     # 文件夹 A 和 B 的路径
-    folder_a = r'E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMAP\train'
-    folder_b = r'E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMAP\train2'
+    folder_a = r'E:\Datasets\MSL\train'
+    folder_b = r'E:\TimeSeriesAnomalyDection\TSAD_System\Data\MSL\train'
 
     # 遍历文件夹 A 下的所有 .npy 文件
     for file_name in os.listdir(folder_a):
@@ -223,7 +224,58 @@ def makeDatasetToWindows(dataset_pair,window_size = 30):
                 np.save(savepath_label + "/" + data_name + ".npy", label)
 
 
+def process_nasa():
+    file_path = r"E:/Datasets/MSL/labeled_anomalies.csv"
+    # 读取Excel文件
+    label_csv = pd.read_csv(file_path)
+
+    label_map = {}
+    # 遍历每行数据
+    for index, row in label_csv.iterrows():
+        dataset = row["spacecraft"]
+        chan_id = row["chan_id"]
+        label_str = row["anomaly_sequences"]
+        label_list = json.loads(label_str)
+        label_map[chan_id] = label_list
+
+
+    print("label_map:",label_map)
+
+    # 设置目录路径
+    msl_directory_path = r'E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMAP\test'
+    # 获取文件夹中的文件名
+    directories_path = [f for f in os.listdir(msl_directory_path)]
+
+    for file in directories_path:
+        source_path = os.path.join(msl_directory_path, file)
+        realname = file.split(".")[0]
+        data_test = pd.read_csv(source_path)
+        label = np.zeros(len(data_test))
+        label_list = label_map[realname]
+        # data_test = np.load(source_path)
+        for one in label_list:
+            label[one[0]:one[1]] = 1
+            print("realname:",realname)
+            print("one:",one)
+
+        write_file = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMAP\label"
+        write_file = write_file + "\\" + realname + ".csv"
+        label = pd.Series(label)
+        label.to_csv(write_file,index=False,header=False)
+
+
+def process_nasa_p2():
+
+    msl_directory_path = r'E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMAP\label\P-2.csv'
+    label = pd.read_csv(msl_directory_path,header=None)
+
+    label = label.values
+    label[5300:6575] = 1
+    label = pd.Series(label.squeeze())
+    label.to_csv(msl_directory_path,header=False,index=False)
+
 if __name__ == '__main__':
+
     pass
     # concactSKABTest()
     # datset_pair = [("WADI",True),("UCR",False),("SWAT",True),("SMD",False),("SMAP",False),("SKAB.csv",True),("PMS",True),("MSL",False),("DMDS",True)]
