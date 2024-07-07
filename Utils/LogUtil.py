@@ -22,7 +22,7 @@ def wirteLog(path, title, data):
 
 
 
-def trace(data):
+def trace(data,logname = "trace.json"):
     """
      写日志
      :param data: dict，字典类型的数据，以json形式保存
@@ -34,7 +34,7 @@ def trace(data):
         # 如果文件夹不存在，则创建它
         os.makedirs(path)
 
-    path = "/Logs/trace.log"
+    path = "/Logs/" + logname
     with open(path, 'a') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
