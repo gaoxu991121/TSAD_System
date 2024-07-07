@@ -26,8 +26,6 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-# 使用一个固定的种子
-set_seed(42)
 
 
 def parseParams():
@@ -350,6 +348,8 @@ def trainAdapter(config,model,filename):
 
 
 if __name__ == '__main__':
+    # 使用一个固定的种子
+    set_seed(42)
 
     args = parseParams()
     args.model_name = "TRANSFORMER"
@@ -372,7 +372,7 @@ if __name__ == '__main__':
     logpath = "../Logs/Lora-exp/"
 
     for filename in data_files:
-
+        print("filename:",filename)
         result = {}
 
         for epoch in epoch_list:
