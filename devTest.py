@@ -240,17 +240,21 @@ def plotFig3():
                 0.35806182121971597, 0.6230125523012552,0.5325826103009046],
         '1-7': [0.19161211583268611, 0.30686936936936937, 0.4928282456785583, 0.4216791979949875, 0.139186032214435, 0.1549038308694961, 0.5242130750605327]
     }
-    # plt.rcParams.update({'font.size': 28})
-    plt.rcParams.update({'font.family': 'Times New Roman'})
+    plt.rcParams.update({'font.size': 24})
+    # plt.rcParams.update({'font.family': 'Times New Roman'})
     # 绘制柱状图
-    fig, ax = plt.subplots(figsize=(20, 6))
+    fig, ax = plt.subplots(figsize=(20, 10))
     bar_width = 0.1
     index = range(len(data))
     colors = ['#32B897', '#D8383A','#FFBE7A', '#82B0D2', '#BEB8DC', '#2878B5', '#96C37D']
+    patterns = ['/', '|', '-', 'x', 'o', '+', '\\']
+
     for i, method in enumerate(methods):
         values = [data[key][i] for key in data]
-        plt.bar([p + bar_width * i - 2*bar_width for p in index], values,
-                bar_width, label=method, color=colors[i])
+        bars = plt.bar([p + bar_width * i - 2*bar_width for p in index], values,
+                bar_width, label=method, color=colors[i],edgecolor='k')
+        for bar, pattern in zip(bars, patterns):
+            bar.set_hatch(patterns[i])
 
     # 标注排名
     for j, key in enumerate(data):
@@ -258,18 +262,18 @@ def plotFig3():
         sorted_values = sorted(values, reverse=True)
         for i, value in enumerate(values):
             rank = sorted_values.index(value) + 1
-            ax.text(j + (i - 26) * bar_width, value + 0, f'{rank}', ha='center', va='bottom', color='black', fontsize=12)
+            ax.text(j + (i -2) * bar_width , value + 0, f'{rank}', ha='center', va='bottom', color='black', fontsize=24)
 
 
     # 设置 x 轴标签和标题
-    plt.xlabel('SMD',fontsize=24)
-    plt.ylabel('F1',fontsize=24)
+    # plt.xlabel('SMD',fontsize=32)
+    plt.ylabel('F1',fontsize=32)
     plt.title('')
     plt.grid(axis='y')
-    plt.xticks([p + 1 * bar_width for p in index], data.keys(),fontsize=18)
-    plt.yticks(fontsize=18)  # 设置 y 轴刻度字体大小为10
-    plt.legend()
-    plt.savefig("fig1.pdf")
+    plt.xticks([p + 1 * bar_width for p in index], data.keys(),fontsize=24)
+    plt.yticks(fontsize=24)  # 设置 y 轴刻度字体大小为10
+    plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.25), ncol=4)
+    plt.savefig("fig1.pdf", bbox_inches='tight', dpi=600)
     plt.show()
 
 
@@ -380,26 +384,26 @@ if __name__ == '__main__':
     # print(countSame(data[0],data))
     # print(getMatrixKey(res))
     # print(unique(res))
-
-    import numpy as np
-
-    # 示例列表，每个元素是一个 [window, channel] 的 NumPy 数组
-    array_list = [np.array([[1, 2, 3], [4, 5, 6]]),
-                  np.array([[1, 2, 3], [4, 5, 6]]),  # 重复
-                  np.array([[7, 8, 9], [10, 11, 12]])]
-
-    # 将每个 NumPy 数组转换为元组并存储在字典中去重
-    unique_arrays = {tuple(map(tuple, array)): array for array in array_list}
-
-    # 提取去重后的 NumPy 数组
-    unique_array_list = list(unique_arrays.values())
-
-    # 输出结果
-    print("原始列表长度:", len(array_list))
-    print("去重后的列表长度:", len(unique_array_list))
-    print("去重后的列表:")
-
-    print(unique_array_list)
+    plotFig3()
+    # import numpy as np
+    #
+    # # 示例列表，每个元素是一个 [window, channel] 的 NumPy 数组
+    # array_list = [np.array([[1, 2, 3], [4, 5, 6]]),
+    #               np.array([[1, 2, 3], [4, 5, 6]]),  # 重复
+    #               np.array([[7, 8, 9], [10, 11, 12]])]
+    #
+    # # 将每个 NumPy 数组转换为元组并存储在字典中去重
+    # unique_arrays = {tuple(map(tuple, array)): array for array in array_list}
+    #
+    # # 提取去重后的 NumPy 数组
+    # unique_array_list = list(unique_arrays.values())
+    #
+    # # 输出结果
+    # print("原始列表长度:", len(array_list))
+    # print("去重后的列表长度:", len(unique_array_list))
+    # print("去重后的列表:")
+    #
+    # print(unique_array_list)
 
 
     # print(data.shape)

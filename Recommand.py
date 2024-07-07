@@ -198,7 +198,7 @@ def getConfigs():
     config = {
             "epoch": 2,
             "batch_size": 128,
-            "window_size": 10,
+            "window_size": 30,
             "identifier": "model-evaluation",
             "hidden_size": 64,
             "latent_size": 32,
@@ -620,13 +620,13 @@ def evalOneDatasetFile(dataset_name,filename,mode = "old"):
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
     window_size = config["window_size"]
-    # data_train,data_test,label = readData(dataset_path = base_path + "/RecomData/" + mode + "/" + dataset_name ,filename = filename,file_type = "npy")
+    data_train,data_test,label = readData(dataset_path = base_path + "/RecomData/" + mode + "/" + dataset_name ,filename = filename,file_type = "npy")
 
-    label = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/label/" + filename + ".npy")
-    data_train = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/train/" + filename + ".npy")
-    data_test = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/test/" + filename + ".npy")
+    # label = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/label/" + filename + ".npy")
+    # data_train = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/train/" + filename + ".npy")
+    # data_test = np.load(base_path + "/RecomData/" + mode + "/" + dataset_name + "/window/test/" + filename + ".npy")
     #
-    # label = label[window_size - 1:]
+    label = label[window_size - 1:]
 
     input_dim = data_train.shape[-1]
 
@@ -784,7 +784,8 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
 
     old_window_samples,old_indices = sampleFromWindowData(old_window_data,sample_num)
     new_window_samples,new_indices = sampleFromWindowData(new_window_data,sample_num)
-    old_label_samples,new_indices = sampleFromWindowData(old_label_data,sample_num)
+    old_label_samples,new_indices = sampleFromWindowData(old_label_data,sample_num,old_indices)
+
 
     print("new dataset . len: ", len(new_window_samples)," shape:",old_window_samples[0].shape)
 
@@ -793,7 +794,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
     method_recommond_score = []
     method_score_map = {}
     all_params = getEvalCount(mode="old", dataset=dataset, method_list=method_list)
-    all_params["anomaly_ratio"] = np.sum(old_label_data)/len(old_label_data)
+    anomaly_ratio = np.sum(old_label_data)/len(old_label_data)
     print("anomaly ratio:", all_params["anomaly_ratio"])
     for method in method_list:
         score_path = "./RecomData/scores/old/" + dataset + "/" + old_filename + "/" + method + ".npy"
@@ -804,7 +805,7 @@ def sampleAndMatch(dataset,old_filename,new_filename,method_list,sample_num = 10
         #old_label_samples,_ = sampleFromWindowData(old_label_data,sample_num,indices=old_indices)
 
         params = all_params[dataset][old_filename][method]
-        
+        params["anomaly_ratio"] = anomaly_ratio
         total_dataset_recommond_score = getDatasetSimilarity(old_window_samples,new_window_samples,old_anomaly_scores=anomaly_scores_samples,old_label_samples = old_label_samples,threshold = threshold,params=params)
         print("method:",method," score:",total_dataset_recommond_score)
         method_score_map[method] = total_dataset_recommond_score
@@ -839,9 +840,111 @@ def bordaAggregation(rank_list,method_list):
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return sorted_scores
 
+def compareRuntime(window_size,sample_num,threshold):
+    dataset_list = [("SWAT", True), ("WADI", True), ("UCR", False), ("SMD", False), ("SMAP", False), ("SKAB", True),
+                    ("PMS", True), ("MSL", False), ("DMDS", True)]
+    method_list = ["LSTMVAE", "LSTMAE", "NASALSTM", "DAGMM", "TRANSFORMER", "TCNAE", "UAE", "TRANAD", "OmniAnomaly",
+                   "PCAAD", "IForestAD"]
+
+
+
+
+    for dataset,isonly in dataset_list:
+        print("recommending dataset:",dataset)
+
+        old_filename = dataset
+        new_filename = dataset
+
+
+
+
+
+        print("sample - dataset:", dataset)
+        dataset_old_path = "./RecomData/old/" + dataset + "/test/" + old_filename + ".npy"
+        dataset_new_path = "./RecomData/new/" + dataset + "/test/" + new_filename + ".npy"
+        dataset_old_label_path = "./RecomData/old/" + dataset + "/label/" + old_filename + ".npy"
+
+
+
+
+
+        old_window_data = np.load(dataset_old_path)
+        new_window_data = np.load(dataset_new_path)
+
+        print("old data length:", len(old_window_data))
+        print("new data length:", len(new_window_data))
+
+        old_label_data = np.load(dataset_old_label_path)
+
+        all_params = getEvalCount(mode="old", dataset=dataset, method_list=method_list)
+        anomaly_ratio = np.sum(old_label_data) / len(old_label_data)
+
+
+
+
+        old_window_data = convertToSlidingWindow(old_window_data,window_size)
+        new_window_data = convertToSlidingWindow(new_window_data,window_size)
+        old_label_data = convertToSlidingWindow(old_label_data,window_size)
+
+
+
+        old_data_length = int(len(old_window_data) * 0.95)
+
+        old_window_data = old_window_data[-old_data_length:]
+        new_window_data = new_window_data[-old_data_length:]
+        old_label_data = old_label_data[-old_data_length:]
+
+        starttime =  time.time()
+        print("start sample. start time:", starttime)
+
+        old_window_samples, old_indices = sampleFromWindowData(old_window_data, sample_num)
+        new_window_samples, new_indices = sampleFromWindowData(new_window_data, sample_num)
+        old_label_samples, new_indices = sampleFromWindowData(old_label_data, sample_num, old_indices)
+
+
+        method_recommond_score = []
+        method_score_map = {}
+
+
+        for method in method_list:
+            score_path = "./RecomData/scores/old/" + dataset + "/" + old_filename + "/" + method + ".npy"
+            anomaly_scores = np.load(score_path)
+            anomaly_scores = anomaly_scores[:, np.newaxis]
+
+            anomaly_scores = convertToWindow(anomaly_scores, window_size).squeeze()[-old_data_length:]
+
+            anomaly_scores, new_indices = sampleFromWindowData(anomaly_scores, sample_num,old_indices)
+
+            params = all_params[dataset][old_filename][method]
+            params["anomaly_ratio"] = anomaly_ratio
+            total_dataset_recommond_score = getDatasetSimilarity(old_window_samples, new_window_samples,
+                                                                 old_anomaly_scores=anomaly_scores,
+                                                                 old_label_samples=old_label_samples,
+                                                                 threshold=threshold, params=params)
+            # print("method:", method, " score:", total_dataset_recommond_score)
+            method_score_map[method] = total_dataset_recommond_score
+            method_recommond_score.append(total_dataset_recommond_score)
+
+
+
+        endtime =  time.time()
+        print("start sample. end time:", endtime)
+        print("dataset:",dataset," running time:",endtime-starttime," window_size:",window_size," sample_num:",sample_num)
+
+        max_score_index = np.array(method_recommond_score).argmax(axis=0)
+        max_score = np.array(method_recommond_score).max(axis=0)
+        method_score_map = dict(sorted(method_score_map.items(), key=lambda x: x[1], reverse=True))
+        recommon_method = method_list[max_score_index]
+        print("rank :", method_score_map)
+
+
+
+
+
+
 def recommendAll():
-    dataset_list = [("SMD", False),
-                    ("PMS", True)]
+    dataset_list = [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+                   ("PMS", True), ("MSL", False), ("DMDS", True)]
     method_list = ["LSTMVAE","LSTMAE","NASALSTM","DAGMM","TRANSFORMER","TCNAE","UAE","TRANAD","OmniAnomaly","PCAAD","IForestAD"]
 
     file_recommond_method_list = []
@@ -999,11 +1102,11 @@ if __name__ == '__main__':
     # processWADI("SWAT",step=1)
     # processWADI("SWAT",step=2)
     # processWADI("SWAT",step=3)
-    # dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
-    #                ("PMS", True), ("MSL", False), ("DMDS", True)]
-    # for dataset,isonly in dataset_list:
-    #     convertRecToWindow(dataset,10)
-    #     convertLabelToWindow(dataset,10)
+    dataset_list =  [("SWAT", True),("WADI", True),("UCR", False),  ("SMD", False), ("SMAP", False), ("SKAB", True),
+                   ("PMS", True), ("MSL", False), ("DMDS", True)]
+    for dataset,isonly in dataset_list:
+        convertRecToWindow(dataset,10)
+        convertLabelToWindow(dataset,10)
 
     # convertLabelToWindow("WADI",10)
     # convertLabelToWindow("SWAT",10)
@@ -1011,9 +1114,9 @@ if __name__ == '__main__':
     # convertRecToWindow("SWAT",10)
 
     # datasetProcess()
-    evaluateAllDaset(mode="old")
-    evaluateAllDaset(mode="new")
-    # recommendAll()
+    # evaluateAllDaset(mode="old")
+    # evaluateAllDaset(mode="new")
+    recommendAll()
 
 
     # origin_data_path = r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\SMD\window\test\machine-1-1.npy"
