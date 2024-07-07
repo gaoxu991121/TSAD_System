@@ -158,7 +158,7 @@ def trainFull(config,filename):
     if not os.path.exists(plot_path):
         # 如果文件夹不存在，则创建它
         os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-" + config["epoch"]
+    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-" + str(config["epoch"])
     plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
                     save_path=plot_file_path, segments=findSegment(label),threshold=threshold)
 
@@ -167,9 +167,6 @@ def trainFull(config,filename):
 
 
 def trainPart(config,filename):
-    args = parseParams()
-    args.model_name = "TRANSFORMER"
-    config = getConfig(args=args)
 
     window_size = config["window_size"]
 
@@ -229,7 +226,7 @@ def trainPart(config,filename):
     if not os.path.exists(plot_path):
         # 如果文件夹不存在，则创建它
         os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-" + config["epoch"]
+    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-" + str(config["epoch"])
     plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
                     save_path=plot_file_path, segments=findSegment(label),threshold=threshold)
     return f1,model
@@ -340,7 +337,7 @@ def trainAdapter(config,model,filename):
     if not os.path.exists(plot_path):
         # 如果文件夹不存在，则创建它
         os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-" + config["epoch"]
+    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-" + str(config["epoch"])
     plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
                   save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
 
