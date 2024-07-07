@@ -54,7 +54,7 @@ def getConfig(args):
 
     identifier = args.model_name + "/" + start_time
     config = {
-        "base_path":"../",
+        "base_path":"./",
         "model": args.model_name,
         "dataset":args.dataset,
         "filename":args.filename,
@@ -97,20 +97,20 @@ def getModel(config):
     return model
 
 
-def trainFull(config,filename):
+def trainFull(config,filename,data_train,data_test,label):
 
 
-    window_size = config["window_size"]
-
-    label_path = "./Data/SMD/label/" + filename
-    train_path = "./Data/SMD/train/" + filename
-    test_path = "./Data/SMD/test/" + filename
-
-
-    # preprocess data
-    label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
-    data_test = pd.read_csv(test_path, header=None).to_numpy()
-    data_train = pd.read_csv(train_path, header=None).to_numpy()
+    # window_size = config["window_size"]
+    #
+    # label_path = "./Data/SMD/label/" + filename
+    # train_path = "./Data/SMD/train/" + filename
+    # test_path = "./Data/SMD/test/" + filename
+    #
+    #
+    # # preprocess data
+    # label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
+    # data_test = pd.read_csv(test_path, header=None).to_numpy()
+    # data_train = pd.read_csv(train_path, header=None).to_numpy()
 
     config["input_size"] = data_test.shape[-1]
     # get data
@@ -123,7 +123,7 @@ def trainFull(config,filename):
 
     # get model
     model = getModel(config=config).to(device)
-    print("model:", model)
+    # print("model:", model)
 
     # shuffle = config["shuffle"]
 
@@ -133,7 +133,7 @@ def trainFull(config,filename):
     # get anomaly score
     # model.setThreshold(data_train,data_test,label)
     anomaly_scores1 = model.test(data_test)
-    print("anomaly score:", anomaly_scores1)
+    # print("anomaly score:", anomaly_scores1)
     # predict anomaly based on the threshold
     # threshold = model.getThreshold()
     #
@@ -166,19 +166,24 @@ def trainFull(config,filename):
 
 
 
-def trainPart(config,filename):
+def trainPart(config,filename,data_train,data_test,label):
 
     window_size = config["window_size"]
+    #
+    # label_path = "./Data/SMD/label/" + filename
+    # train_path = "./Data/SMD/train/" + filename
+    # test_path = "./Data/SMD/test/" + filename
+    #
+    #
+    # # preprocess data
+    # label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
+    # data_test = pd.read_csv(test_path, header=None).to_numpy()[:,11:]
+    # data_train = pd.read_csv(train_path, header=None).to_numpy()[:,11:]
 
-    label_path = "./Data/SMD/label/" + filename
-    train_path = "./Data/SMD/train/" + filename
-    test_path = "./Data/SMD/test/" + filename
 
 
-    # preprocess data
-    label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
-    data_test = pd.read_csv(test_path, header=None).to_numpy()[:,11:]
-    data_train = pd.read_csv(train_path, header=None).to_numpy()[:,11:]
+    data_test = data_test[:,11:]
+    data_train = data_train[:,11:]
 
     config["input_size"] = data_test.shape[-1]
     # get data
@@ -191,7 +196,7 @@ def trainPart(config,filename):
 
     # get model
     model = getModel(config=config).to(device)
-    print("model:", model)
+    # print("model:", model)
 
     # shuffle = config["shuffle"]
 
@@ -201,7 +206,7 @@ def trainPart(config,filename):
     # get anomaly score
     # model.setThreshold(data_train,data_test,label)
     anomaly_scores1 = model.test(data_test)
-    print("anomaly score:", anomaly_scores1)
+    # print("anomaly score:", anomaly_scores1)
     # predict anomaly based on the threshold
     # threshold = model.getThreshold()
     #
@@ -231,28 +236,27 @@ def trainPart(config,filename):
                     save_path=plot_file_path, segments=findSegment(label),threshold=threshold)
     return f1,model
 
-def trainAdapter(config,model,filename):
+def trainAdapter(config,model,filename,data_train,data_test,label):
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
+    device = config["device"]
 
+    # print(model)
 
-    print(model)
-
-    model.input_adpter = torch.nn.Linear(38, 27)
-    model.output_adpter = torch.nn.Linear(27, 38)
+    model.input_adpter = torch.nn.Linear(38, 27).to(device)
+    model.output_adpter = torch.nn.Linear(27, 38).to(device)
 
     window_size = config["window_size"]
-
-    label_path = "./Data/SMD/label/" + filename
-    train_path = "./Data/SMD/train/" + filename
-    test_path = "./Data/SMD/test/" + filename
-
-
-    # preprocess data
-    label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
-    data_test = pd.read_csv(test_path, header=None).to_numpy()
-    data_train = pd.read_csv(train_path, header=None).to_numpy()
-
+    #
+    # label_path = "./Data/SMD/label/" + filename
+    # train_path = "./Data/SMD/train/" + filename
+    # test_path = "./Data/SMD/test/" + filename
+    #
+    #
+    # # preprocess data
+    # label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
+    # data_test = pd.read_csv(test_path, header=None).to_numpy()
+    # data_train = pd.read_csv(train_path, header=None).to_numpy()
 
 
 
@@ -276,7 +280,7 @@ def trainAdapter(config,model,filename):
             optimizer.zero_grad()
             item = d[0].to(model.divice)
 
-            data_adpted = model.input_adpter(item)
+            data_adpted = model.input_adpter(item).to(device)
             output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
             output = model.output_adpter(output)
 
@@ -366,21 +370,33 @@ if __name__ == '__main__':
     dataset_path = "./Data/SMD/test"
     data_files = os.listdir(dataset_path)
 
-    logpath = "../Logs/Lora-exp/"
+    logpath = "./Logs/Lora-exp/"
 
     for filename in data_files:
         print("filename:",filename)
         result = {}
 
+        window_size = config["window_size"]
+
+        label_path = "./Data/SMD/label/" + filename
+        train_path = "./Data/SMD/train/" + filename
+        test_path = "./Data/SMD/test/" + filename
+
+        # preprocess data
+        label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
+        data_test = pd.read_csv(test_path, header=None).to_numpy()
+        data_train = pd.read_csv(train_path, header=None).to_numpy()
+
+
         for epoch in epoch_list:
             config["identifier"] = "Lora-exp-"+filename.split(".")[0]
             config["epoch"] = epoch
 
-            full_f1 = trainFull(config,filename)
+            full_f1 = trainFull(config,filename,data_train,data_test,label)
 
-            part_f1,model = trainPart(config, filename)
+            part_f1,model = trainPart(config, filename,data_train,data_test,label)
 
-            adapter_f1 = trainAdapter(config,model,filename)
+            adapter_f1 = trainAdapter(config,model,filename,data_train,data_test,label)
 
             result["epoch-"+str(epoch)+"-full"] = full_f1
             result["epoch-" + str(epoch) + "-part"] = part_f1
