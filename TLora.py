@@ -360,7 +360,7 @@ if __name__ == '__main__':
     config["num_heads"] = 1
     config["drop_out_rate"] = 0.2
     config["latent_size"] = 14
-
+    config["window_size"] = 60
 
     epoch_list = [1,2,3,4,5]
 
