@@ -4,6 +4,7 @@ import pandas as pd
 import time
 import torch
 
+from Models.Layers.LinearWithLoRA import LinearWithLoRA
 from Preprocess.Normalization import minMaxScaling
 from Utils.DataUtil import readData, readJson
 import math
@@ -15,6 +16,8 @@ from Utils.EvalUtil import findSegment
 from Utils.LogUtil import wirteLog, trace
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
+
+from functools import partial
 
 def set_seed(seed):
     random.seed(seed)
@@ -236,12 +239,79 @@ def trainPart(config,filename,data_train,data_test,label):
                     save_path=plot_file_path, segments=findSegment(label),threshold=threshold)
     return f1,model
 
+
+def showModel(config):
+    device = config["device"]
+
+    # get model
+    model = getModel(config=config).to(device)
+    print(model)
+
+    # default hyperparameter choices
+    lora_r = 4
+    lora_alpha = 16
+    lora_dropout = 0.05
+    lora_query = True
+    lora_key = True
+    lora_value = True
+    lora_projection = True
+    lora_mlp = True
+    lora_head = True
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    assign_lora = partial(LinearWithLoRA, rank=lora_r, alpha=lora_alpha,in_features = 38,out_features = 27)
+
+    # Apply LoRA to the layers
+    for layer in model.transformer.encoder.layers:
+        if lora_query:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_key:
+            # Assuming the model has key projection
+            pass
+        if lora_value:
+            # Assuming the model has value projection
+            pass
+        if lora_projection:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_mlp:
+            layer.linear1 = assign_lora(layer.linear1)
+            layer.linear2 = assign_lora(layer.linear2)
+
+    for layer in model.transformer.decoder.layers:
+        if lora_query:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_key:
+            # Assuming the model has key projection
+            pass
+        if lora_value:
+            # Assuming the model has value projection
+            pass
+        if lora_projection:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_mlp:
+            layer.linear1 = assign_lora(layer.linear1)
+            layer.linear2 = assign_lora(layer.linear2)
+
+    if lora_head:
+        model.fc = assign_lora(model.fc)
+
+    print(model)
+
+
+
+
 def trainAdapter(config,model,filename,data_train,data_test,label):
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
     device = config["device"]
 
     # print(model)
+
+    for param in model.parameters():
+        param.requires_grad = False
+
 
     model.input_adpter = torch.nn.Linear(38, 27).to(device)
     model.output_adpter = torch.nn.Linear(27, 38).to(device)
@@ -258,7 +328,62 @@ def trainAdapter(config,model,filename,data_train,data_test,label):
     # data_test = pd.read_csv(test_path, header=None).to_numpy()
     # data_train = pd.read_csv(train_path, header=None).to_numpy()
 
+    #loar start
 
+    # default hyperparameter choices
+    lora_r = 4
+    lora_alpha = 16
+    lora_dropout = 0.05
+    lora_query = True
+    lora_key = True
+    lora_value = True
+    lora_projection = True
+    lora_mlp = True
+    lora_head = True
+
+
+
+
+
+    assign_lora = partial(LinearWithLoRA, rank=lora_r, alpha=lora_alpha)
+
+    # Apply LoRA to the layers
+    for layer in model.transformer.encoder.layers:
+        if lora_query:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_key:
+            # Assuming the model has key projection
+            pass
+        if lora_value:
+            # Assuming the model has value projection
+            pass
+        if lora_projection:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_mlp:
+            layer.linear1 = assign_lora(layer.linear1)
+            layer.linear2 = assign_lora(layer.linear2)
+
+    for layer in model.transformer.decoder.layers:
+        if lora_query:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_key:
+            # Assuming the model has key projection
+            pass
+        if lora_value:
+            # Assuming the model has value projection
+            pass
+        if lora_projection:
+            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+        if lora_mlp:
+            layer.linear1 = assign_lora(layer.linear1)
+            layer.linear2 = assign_lora(layer.linear2)
+
+    if lora_head:
+        model.fc = assign_lora(model.fc)
+
+
+
+    #lora end
 
     train_loader = model.processData(data_train)
     model.train()
@@ -363,6 +488,8 @@ if __name__ == '__main__':
     config["latent_size"] = 14
     config["window_size"] = 60
 
+    # showModel(config)
+
     epoch_list = [1,2,3,4,5]
 
 
@@ -404,6 +531,6 @@ if __name__ == '__main__':
 
 
 
-            wirteLog(logpath,filename.split(".")[0],result)
+        wirteLog(logpath,filename.split(".")[0],result)
 
 
