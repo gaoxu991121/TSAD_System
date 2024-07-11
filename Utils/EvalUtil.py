@@ -1,4 +1,23 @@
 import numpy as np
+from sklearn import metrics
+
+
+def aucRoc(anomaly_scores : np.ndarray = np.array([]), ground_truth : np.ndarray = np.array([])):
+    auc = metrics.roc_auc_score(ground_truth, anomaly_scores)
+    return auc
+
+def aucPr(anomaly_scores : np.ndarray = np.array([]), ground_truth : np.ndarray = np.array([])):
+    precision, recall, thresholds = metrics.precision_recall_curve(ground_truth, anomaly_scores)
+
+    auc_pr = metrics.auc(recall, precision)
+
+    return auc_pr
+
+
+
+
+
+
 
 def countResult(predict_labels : np.ndarray = np.array([]), ground_truth : np.ndarray = np.array([]), log = False)-> tuple:
     tp = 0

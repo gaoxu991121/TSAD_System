@@ -30,6 +30,7 @@ matplotlib.use('TkAgg')
 
 
 
+
 def parseParams():
     parser = argparse.ArgumentParser(description='Time series anomaly detection system')
 

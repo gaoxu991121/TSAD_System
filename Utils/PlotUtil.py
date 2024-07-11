@@ -30,7 +30,7 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
                 ax.axvline(x=pair[0], color=colorTransform(131,136,186), linestyle='-.', linewidth=2)  # 使用红色虚线
 
         # if len(labels) > 0:
-        #     ax.plot(x_axis, labels, color='red', label='label', linestyle='--',linewidth=2)
+        #     ax.plot(x_axis, labels, color='red',label='label', linestyle='--',linewidth=2)
 
         if len(segments) > 0:
             for item in segments:
@@ -82,7 +82,7 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
     plt.subplots_adjust(left=0.15, right=0.9, bottom=0.1, top=0.9, wspace=0.2, hspace=0.3)
     if save_path != "":
         plt.savefig(save_path)
-
+    plt.close()
     # 显示图表
     # plt.show()
 

@@ -4,15 +4,21 @@ import pandas as pd
 import time
 import torch
 import gc
+
+
 from Models.Layers.LinearWithLoRA import LinearWithLoRA
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.utils.data import TensorDataset, DataLoader
+
 from Preprocess.Normalization import minMaxScaling
+from Preprocess.Window import convertToSlidingWindow
 from Utils.DataUtil import readData, readJson
 import math
 from datetime import  datetime
 import os
 import random
 import argparse
-from Utils.EvalUtil import findSegment
+from Utils.EvalUtil import findSegment, aucRoc, aucPr
 from Utils.LogUtil import wirteLog, trace
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
@@ -100,7 +106,7 @@ def getModel(config):
     return model
 
 
-def trainFull(config,filename,data_train,data_test,label):
+def trainFull(config,filename,train_data,test_data,label):
 
 
     # window_size = config["window_size"]
@@ -131,52 +137,124 @@ def trainFull(config,filename,data_train,data_test,label):
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'train full - total number of trainable parameters: {num_params}')
 
-    # print("model:", model)
+    train_loader = model.processData(train_data)
+    model.train()
+    lr = config["learning_rate"]
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
-    # shuffle = config["shuffle"]
-
-    # train model
-    model.fit(train_data=data_train, write_log=True)
-
-    # get anomaly score
-    # model.setThreshold(data_train,data_test,label)
-    anomaly_scores1 = model.test(data_test)
-    # print("anomaly score:", anomaly_scores1)
-    # predict anomaly based on the threshold
-    # threshold = model.getThreshold()
-    #
-    # predict_labels =  model.decide(anomaly_score=anomaly_scores,threshold=threshold,ground_truth_label=label)
-    # # result = model.predictEvaluate(test_data=data_test, label = label, protocol ="apa" )
-    # # print(result)
-    #
-    # # #evaluate
-    # f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label,threshold=threshold,write_log=False)
-
-    predict_labels, f1, threshold = model.getBestPredict(anomaly_score=anomaly_scores1, n_thresholds=100,
-                                                         ground_truth_label=label, protocol="none")
-    print("f1-score:", f1, " threshold:", threshold)
-
-    #
-    # #visualization
-    plot_yaxis = []
-    plot_yaxis.append(anomaly_scores1)
-    plot_yaxis.append(predict_labels)
-    plot_path = config["base_path"] + "/Plots/Lora-exp/" + config["identifier"]
-    # 判断文件夹是否存在
-    if not os.path.exists(plot_path):
-        # 如果文件夹不存在，则创建它
-        os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-full-" + str(config["epoch"])
-    plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
-                    save_path=plot_file_path, segments=findSegment(label),threshold=threshold)
-
-    del model
-
-    return f1
+    # 设置余弦学习率衰减，这里的T_max是衰减周期
+    scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
 
 
 
-def trainPart(config,filename,data_train,data_test,label,first_half = True):
+
+    result = {}
+    result["f1"] = []
+    result["auc_roc"] = []
+    result["auc_pr"] = []
+    result["training_time"] = []
+    result["testing_time"] = []
+    test_dataloader = model.processData(test_data)
+
+
+
+
+    for ep in range(1,config["epoch"]+1,1):
+        l = torch.nn.MSELoss(reduction='sum')
+        # l1s = []
+
+        running_start_time = time.time()
+
+        running_loss = 0
+        for d in train_loader:
+            optimizer.zero_grad()
+            item = d[0].to(device)
+
+            output = model(item, item[:, -1, :].unsqueeze(dim=1))
+
+            loss = l(output, item[:, -1, :].unsqueeze(dim=1))
+
+            # l1s.append(torch.mean(loss).item())
+
+            running_loss += loss.item()
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        scheduler.step()  # 在每个epoch后更新学习率
+
+        running_end_time = time.time()
+
+
+
+        print(f'train epoch [{ep}/{config["epoch"]}],\t loss = {running_loss / len(train_loader)}')
+
+
+
+
+        #test
+
+        testing_start_time = time.time()
+
+        model.eval()
+        score = []
+
+        l = torch.nn.MSELoss(reduction='none')
+
+        with torch.no_grad():
+            for index, d in enumerate(test_dataloader):
+                item = d[0].to(device)
+
+                output = model(item, item[:, -1, :].unsqueeze(dim=1))
+                loss = l(output[:, -1, :], item[:, -1, :])
+
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+
+                score.append(loss.detach().cpu())
+
+            testing_end_time = time.time()
+            score = torch.concatenate(score, dim=0).numpy()
+
+            score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+
+
+        predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
+                                                             ground_truth_label=label, protocol="none")
+        print("f1-score:", f1, " threshold:", threshold)
+
+
+        #
+        # #visualization
+        plot_yaxis = []
+        plot_yaxis.append(score)
+        plot_yaxis.append(predict_labels)
+        plot_path = config["base_path"] + "/Plots/Lora-exp/" + config["identifier"]
+        # 判断文件夹是否存在
+        if not os.path.exists(plot_path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(plot_path)
+        plot_file_path = plot_path + "/" + filename.split(".")[0] + "-full-" + str(ep)
+        plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
+                      save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
+
+
+
+        result["f1"].append(f1)
+        result["auc_roc"].append(aucRoc(score, label))
+        result["auc_pr"].append(aucPr(score, label))
+        result["training_time"].append(running_end_time - running_start_time)
+        result["testing_time"].append(testing_end_time - testing_start_time)
+
+
+
+    return result
+
+
+
+def trainPart(config,filename,train_data,test_data,label,first_half = True):
 
     window_size = config["window_size"]
     #
@@ -192,13 +270,13 @@ def trainPart(config,filename,data_train,data_test,label,first_half = True):
 
     if first_half:
 
-        data_test = data_test[:,:19]
-        data_train = data_train[:,:19]
+        test_data = test_data[:,:19]
+        train_data = train_data[:,:19]
     else:
-        data_test = data_test[:, 19:]
-        data_train = data_train[:, 19:]
+        test_data = test_data[:, 19:]
+        train_data = train_data[:, 19:]
 
-    config["input_size"] = data_test.shape[-1]
+    config["input_size"] = test_data.shape[-1]
     # get data
     # print(config)
     #
@@ -215,45 +293,130 @@ def trainPart(config,filename,data_train,data_test,label,first_half = True):
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'train part - total number of trainable parameters: {num_params}')
 
-    # shuffle = config["shuffle"]
+    train_loader = model.processData(train_data)
+    model.train()
+    lr = config["learning_rate"]
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
-    # train model
-    model.fit(train_data=data_train, write_log=True)
-
-    # get anomaly score
-    # model.setThreshold(data_train,data_test,label)
-    anomaly_scores1 = model.test(data_test)
-    # print("anomaly score:", anomaly_scores1)
-    # predict anomaly based on the threshold
-    # threshold = model.getThreshold()
-    #
-    # predict_labels =  model.decide(anomaly_score=anomaly_scores,threshold=threshold,ground_truth_label=label)
-    # # result = model.predictEvaluate(test_data=data_test, label = label, protocol ="apa" )
-    # # print(result)
-    #
-    # # #evaluate
-    # f1 = model.evaluate(predict_label=predict_labels,ground_truth_label=label,threshold=threshold,write_log=False)
-
-    predict_labels, f1, threshold = model.getBestPredict(anomaly_score=anomaly_scores1, n_thresholds=100,
-                                                         ground_truth_label=label, protocol="none")
-    print("f1-score:", f1, " threshold:", threshold)
-
-    #
-    # #visualization
-    plot_yaxis = []
-    plot_yaxis.append(anomaly_scores1)
-    plot_yaxis.append(predict_labels)
-    plot_path = config["base_path"] + "/Plots/Lora-exp/" + config["identifier"]
-    # 判断文件夹是否存在
-    if not os.path.exists(plot_path):
-        # 如果文件夹不存在，则创建它
-        os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-part-" + str(config["epoch"])
-    plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
-                    save_path=plot_file_path, segments=findSegment(label),threshold=threshold)
+    # 设置余弦学习率衰减，这里的T_max是衰减周期
+    scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
 
 
-    return f1,model
+
+    epoch_loss = []
+    result = {}
+    result["f1"] = []
+    result["auc_roc"] = []
+    result["auc_pr"] = []
+    result["training_time"] = []
+    result["testing_time"] = []
+
+
+    test_dataloader = model.processData(test_data)
+
+    for ep in range(1,config["epoch"]+1,1):
+        l = torch.nn.MSELoss(reduction='sum')
+        # l1s = []
+        running_loss = 0
+
+        running_start_time = time.time()
+
+        for d in train_loader:
+            optimizer.zero_grad()
+            item = d[0].to(device)
+
+            output = model(item, item[:, -1, :].unsqueeze(dim=1))
+
+            loss = l(output, item[:, -1, :].unsqueeze(dim=1))
+
+            # l1s.append(torch.mean(loss).item())
+
+            running_loss += loss.item()
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+
+        scheduler.step()  # 在每个epoch后更新学习率
+
+        running_end_time = time.time()
+
+
+        # 计算当前epoch的平均损失
+        epoch_loss.append(running_loss / len(train_loader))
+
+        print(f'train epoch [{ep}/{config["epoch"]}],\t loss = {epoch_loss[ep-1]}')
+
+        # test
+
+
+        model.eval()
+        score = []
+
+        l = torch.nn.MSELoss(reduction='none')
+        testing_start_time = time.time()
+        with torch.no_grad():
+            for index, d in enumerate(test_dataloader):
+                item = d[0].to(device)
+
+                output = model(item, item[:, -1, :].unsqueeze(dim=1))
+                loss = l(output[:, -1, :], item[:, -1, :])
+
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+
+                score.append(loss.detach().cpu())
+
+            testing_end_time = time.time()
+
+            score = torch.concatenate(score, dim=0).numpy()
+
+            score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+
+
+
+        predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
+                                                             ground_truth_label=label, protocol="none")
+        print("f1-score:", f1, " threshold:", threshold)
+
+        #
+        # #visualization
+        plot_yaxis = []
+        plot_yaxis.append(score)
+        plot_yaxis.append(predict_labels)
+        plot_path = config["base_path"] + "/Plots/Lora-exp/" + config["identifier"]
+        # 判断文件夹是否存在
+        if not os.path.exists(plot_path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(plot_path)
+        plot_file_path = plot_path + "/" + filename.split(".")[0] + "-part-" + str(ep)
+        plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
+                      save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
+
+        result["f1"].append(f1)
+        result["auc_roc"].append(aucRoc(score, label))
+        result["auc_pr"].append(aucPr(score, label))
+        result["training_time"].append(running_end_time - running_start_time)
+        result["testing_time"].append(testing_end_time - testing_start_time)
+
+
+        path = "./CheckPoints/LoRA-exp/" + filename.split(".")[0]
+        # 判断文件夹是否存在
+        if not os.path.exists(path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(path)
+
+        if first_half:
+            path = path + "/epoch-" + str(ep) + "-first_part.pth"
+        else:
+            path = path + "/epoch-" + str(ep) + "-last_part.pth"
+
+        torch.save(model.state_dict(), path)
+
+
+    return result
 
 
 def showModel(config):
@@ -344,269 +507,308 @@ def showModel(config):
     # 获取和打印模型中所有可训练参数的数量
     # num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     # print(f'train lora - total number of trainable parameters: {num_params}')
+def processData(data,config):
+    """
+        对数据进行的预处理
+        注意输出类型为可以直接送入训练的data_loader或张量
+        :param data: 数据
+
+    """
+
+    window_size = config["window_size"]
+    batch_size = config["batch_size"]
+
+    if len(data.shape) < 3:
+        data = convertToSlidingWindow(data=data, window_size=window_size)
 
 
 
-def trainAdapterFulltune(config,model,filename,data_train,data_test,label):
+    dataset = TensorDataset(torch.tensor(data).float())
+
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+    return dataloader
+
+
+def trainAdapterFulltune(config,first_half,filename,data_train,data_test,label):
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
     device = config["device"]
 
     # print(model)
-
-
-
-    model.input_adpter = torch.nn.Linear(38, 27).to(device)
-    model.output_adpter = torch.nn.Linear(27, 38).to(device)
-
+    train_loader = processData(data_train,config)
+    test_dataloader = processData(data_test,config)
     window_size = config["window_size"]
-    #
-    # label_path = "./Data/SMD/label/" + filename
-    # train_path = "./Data/SMD/train/" + filename
-    # test_path = "./Data/SMD/test/" + filename
-    #
-    #
-    # # preprocess data
-    # label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
-    # data_test = pd.read_csv(test_path, header=None).to_numpy()
-    # data_train = pd.read_csv(train_path, header=None).to_numpy()
-
-    # 获取和打印模型中所有可训练参数的数量
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'train adapter fulltune - total number of trainable parameters: {num_params}')
 
 
-    train_loader = model.processData(data_train)
-    model.train()
-    lr = model.config["learning_rate"]
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-
-    # 设置余弦学习率衰减，这里的T_max是衰减周期
-    scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
-
-    l = torch.nn.MSELoss(reduction='sum')
-
-    epoch_loss = []
-
-    for ep in range(config["epoch"]):
-
-        # l1s = []
-        running_loss = 0
-        for d in train_loader:
-            optimizer.zero_grad()
-            item = d[0].to(model.divice)
-
-            data_adpted = model.input_adpter(item).to(device)
-            output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
-            output = model.output_adpter(output)
-
-            loss = l(output, item[:, -1, :].unsqueeze(dim=1))
-
-            # l1s.append(torch.mean(loss).item())
-
-            running_loss += loss.item()
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        scheduler.step()  # 在每个epoch后更新学习率
-
-        # 计算当前epoch的平均损失
-        epoch_loss.append(running_loss / len(train_loader))
-
-        print(f'train epoch [{ep + 1}/{model.epoch}],\t loss = {epoch_loss[ep]}')
-
-    test_dataloader = model.processData(data_test)
-    model.eval()
-    score = []
-
-    l = torch.nn.MSELoss(reduction='none')
-
-    with torch.no_grad():
-        for index, d in enumerate(test_dataloader):
-            item = d[0].to(model.divice)
-
-            data_adpted = model.input_adpter(item)
-            output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
-
-            output = model.output_adpter(output)
-
-            loss = l(output[:, -1, :], item[:, -1, :])
-
-            loss = loss.sum(dim=-1)
-            if len(loss.shape) == 0:
-                loss = loss.unsqueeze(dim=0)
-
-            score.append(loss.detach().cpu())
-
-    score = torch.concatenate(score, dim=0).numpy()
-
-    score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
-
-    predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
-                                                         ground_truth_label=label, protocol="none")
-    print("f1-score:", f1)
-    print("threshold:", threshold)
-
-    plot_yaxis = []
-    plot_yaxis.append(score)
-    plot_yaxis.append(predict_labels)
-    plot_path = config["base_path"]+"/Plots/Lora-exp/"+config["identifier"]
-    # 判断文件夹是否存在
-    if not os.path.exists(plot_path):
-        # 如果文件夹不存在，则创建它
-        os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-lora-" + str(config["epoch"])
-    plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
-                  save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
-
-    return f1
 
 
-def trainAdapterFrozen(config,model,filename,data_train,data_test,label):
+
+
+
+    result = {}
+    result["f1"] = []
+    result["auc_roc"] = []
+    result["auc_pr"] = []
+    result["training_time"] = []
+    result["testing_time"] = []
+
+
+
+    for epoch in range(1,config["epoch"]+1,1):
+        l = torch.nn.MSELoss(reduction='sum')
+
+        path = "./CheckPoints/LoRA-exp/" + filename.split(".")[0]
+
+        if first_half:
+            path = path + "/epoch-" + str(epoch) + "-first_part.pth"
+        else:
+            path = path + "/epoch-" + str(epoch) + "-last_part.pth"
+
+        model = getModel(config)
+        model.load_state_dict(torch.load(path))
+
+        model.input_adpter = torch.nn.Linear(38, 19).to(device)
+        model.output_adpter = torch.nn.Linear(19, 38).to(device)
+
+        model.train()
+        lr = model.config["learning_rate"]
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+
+        # 设置余弦学习率衰减，这里的T_max是衰减周期
+        scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
+
+
+
+        running_start_time = time.time()
+
+        for ep in range(1,epoch+1,1):
+
+            # l1s = []
+            running_loss = 0
+            for d in train_loader:
+                optimizer.zero_grad()
+                item = d[0].to(model.divice)
+
+                data_adpted = model.input_adpter(item).to(device)
+                output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
+                output = model.output_adpter(output)
+
+                loss = l(output, item[:, -1, :].unsqueeze(dim=1))
+
+                # l1s.append(torch.mean(loss).item())
+
+                running_loss += loss.item()
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+            scheduler.step()  # 在每个epoch后更新学习率
+
+            print(f'train epoch [{ep}/{epoch}],\t loss = {running_loss/len(train_loader)}')
+
+        running_end_time = time.time()
+        running_duration = (running_end_time - running_start_time)/epoch
+
+        model.eval()
+        score = []
+
+        l = torch.nn.MSELoss(reduction='none')
+
+        testing_start_time = time.time()
+
+        with torch.no_grad():
+            for index, d in enumerate(test_dataloader):
+                item = d[0].to(device)
+
+                data_adpted = model.input_adpter(item)
+                output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
+
+                output = model.output_adpter(output)
+
+                loss = l(output[:, -1, :], item[:, -1, :])
+
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+
+                score.append(loss.detach().cpu())
+
+            testing_end_time = time.time()
+
+        score = torch.concatenate(score, dim=0).numpy()
+
+        score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+
+        predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
+                                                             ground_truth_label=label, protocol="none")
+        print("f1-score:", f1)
+        print("threshold:", threshold)
+
+        plot_yaxis = []
+        plot_yaxis.append(score)
+        plot_yaxis.append(predict_labels)
+        plot_path = config["base_path"]+"/Plots/Lora-exp/"+config["identifier"]
+
+        # 判断文件夹是否存在
+        if not os.path.exists(plot_path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(plot_path)
+        plot_file_path = plot_path + "/" + filename.split(".")[0] + "-lora-" + str(epoch)
+        plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
+                      save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
+
+
+
+        result["f1"].append(f1)
+        result["auc_roc"].append(aucRoc(score, label))
+        result["auc_pr"].append(aucPr(score, label))
+        result["training_time"].append(running_duration)
+        result["testing_time"].append(testing_end_time - testing_start_time)
+
+
+        del model
+
+    return result
+
+
+def trainAdapterFrozen(config,first_half,filename,data_train,data_test,label):
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
     device = config["device"]
 
-    # print(model)
-    for param in model.parameters():
-        param.requires_grad = False
+    train_loader = processData(data_train,config)
+    test_dataloader = processData(data_test,config)
 
 
-    model.input_adpter = torch.nn.Linear(38, 27).to(device)
-    model.output_adpter = torch.nn.Linear(27, 38).to(device)
 
-    window_size = config["window_size"]
-    #
-    # label_path = "./Data/SMD/label/" + filename
-    # train_path = "./Data/SMD/train/" + filename
-    # test_path = "./Data/SMD/test/" + filename
-    #
-    #
-    # # preprocess data
-    # label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
-    # data_test = pd.read_csv(test_path, header=None).to_numpy()
-    # data_train = pd.read_csv(train_path, header=None).to_numpy()
+    result = {}
+    result["f1"] = []
+    result["auc_roc"] = []
+    result["auc_pr"] = []
+    result["training_time"] = []
+    result["testing_time"] = []
+
+    for epoch in range(1,config["epoch"]+1,1):
+        l = torch.nn.MSELoss(reduction='sum')
+
+        path = "./CheckPoints/LoRA-exp/" + filename.split(".")[0]
+
+        if first_half:
+            path = path + "/epoch-" + str(epoch) + "-first_part.pth"
+        else:
+            path = path + "/epoch-" + str(epoch) + "-last_part.pth"
+
+        model = getModel(config)
+        model.load_state_dict(torch.load(path))
+
+        # print(model)
+        for param in model.parameters():
+            param.requires_grad = False
+
+        model.input_adpter = torch.nn.Linear(38, 19).to(device)
+        model.output_adpter = torch.nn.Linear(19, 38).to(device)
+
+        model.train()
+        lr = model.config["learning_rate"]
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+
+        # 设置余弦学习率衰减，这里的T_max是衰减周期
+        scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
 
 
-    # 获取和打印模型中所有可训练参数的数量
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'train adapter frozen - total number of trainable parameters: {num_params}')
+        running_start_time = time.time()
 
-    train_loader = model.processData(data_train)
-    model.eval()
-    lr = model.config["learning_rate"]
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+        for ep in range(1,epoch+1,1):
 
-    # 设置余弦学习率衰减，这里的T_max是衰减周期
-    scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
+            # l1s = []
+            running_loss = 0
+            for d in train_loader:
+                optimizer.zero_grad()
+                item = d[0].to(model.divice)
 
-    l = torch.nn.MSELoss(reduction='sum')
+                data_adpted = model.input_adpter(item).to(device)
+                output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
+                output = model.output_adpter(output)
 
-    epoch_loss = []
+                loss = l(output, item[:, -1, :].unsqueeze(dim=1))
 
-    for ep in range(config["epoch"]):
+                # l1s.append(torch.mean(loss).item())
 
-        # l1s = []
-        running_loss = 0
-        for d in train_loader:
-            optimizer.zero_grad()
-            item = d[0].to(model.divice)
+                running_loss += loss.item()
 
-            data_adpted = model.input_adpter(item).to(device)
-            output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
-            output = model.output_adpter(output)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            loss = l(output, item[:, -1, :].unsqueeze(dim=1))
+            scheduler.step()  # 在每个epoch后更新学习率
 
-            # l1s.append(torch.mean(loss).item())
+            print(f'train epoch [{ep}/{epoch}],\t loss = {running_loss / len(train_loader)}')
 
-            running_loss += loss.item()
+        running_end_time = time.time()
+        running_duration= (running_end_time - running_start_time)/epoch
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        model.eval()
+        score = []
 
-        scheduler.step()  # 在每个epoch后更新学习率
+        l = torch.nn.MSELoss(reduction='none')
 
-        # 计算当前epoch的平均损失
-        epoch_loss.append(running_loss / len(train_loader))
+        testing_start_time = time.time()
+        with torch.no_grad():
+            for index, d in enumerate(test_dataloader):
+                item = d[0].to(device)
 
-        print(f'train epoch [{ep + 1}/{model.epoch}],\t loss = {epoch_loss[ep]}')
+                data_adpted = model.input_adpter(item)
+                output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
 
-    test_dataloader = model.processData(data_test)
-    model.eval()
-    score = []
+                output = model.output_adpter(output)
 
-    l = torch.nn.MSELoss(reduction='none')
+                loss = l(output[:, -1, :], item[:, -1, :])
 
-    with torch.no_grad():
-        for index, d in enumerate(test_dataloader):
-            item = d[0].to(model.divice)
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
 
-            data_adpted = model.input_adpter(item)
-            output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
+                score.append(loss.detach().cpu())
 
-            output = model.output_adpter(output)
+            testing_end_time = time.time()
 
-            loss = l(output[:, -1, :], item[:, -1, :])
+        score = torch.concatenate(score, dim=0).numpy()
 
-            loss = loss.sum(dim=-1)
-            if len(loss.shape) == 0:
-                loss = loss.unsqueeze(dim=0)
+        score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
 
-            score.append(loss.detach().cpu())
+        predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
+                                                             ground_truth_label=label, protocol="none")
+        print("f1-score:", f1)
+        print("threshold:", threshold)
 
-    score = torch.concatenate(score, dim=0).numpy()
+        plot_yaxis = []
+        plot_yaxis.append(score)
+        plot_yaxis.append(predict_labels)
+        plot_path = config["base_path"] + "/Plots/Lora-exp/" + config["identifier"]
 
-    score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+        # 判断文件夹是否存在
+        if not os.path.exists(plot_path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(plot_path)
+        plot_file_path = plot_path + "/" + filename.split(".")[0] + "-lora-" + str(epoch)
+        plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
+                      save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
 
-    predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
-                                                         ground_truth_label=label, protocol="none")
-    print("f1-score:", f1)
-    print("threshold:", threshold)
+        result["f1"].append(f1)
+        result["auc_roc"].append(aucRoc(score, label))
+        result["auc_pr"].append(aucPr(score, label))
+        result["training_time"].append(running_duration)
+        result["testing_time"].append(testing_end_time - testing_start_time)
 
-    plot_yaxis = []
-    plot_yaxis.append(score)
-    plot_yaxis.append(predict_labels)
-    plot_path = config["base_path"]+"/Plots/Lora-exp/"+config["identifier"]
-    # 判断文件夹是否存在
-    if not os.path.exists(plot_path):
-        # 如果文件夹不存在，则创建它
-        os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-lora-" + str(config["epoch"])
-    plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
-                  save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
+        del model
 
-    return f1
+    return result
 
-def trainAdapterLora(config,model,filename,data_train,data_test,label):
+def trainAdapterLora(config,first_half,filename,data_train,data_test,label):
     from torch.optim.lr_scheduler import CosineAnnealingLR
-    device = torch.device("cpu")
-    # device = config["device"]
 
-    # print(model)
-
-    model = model.to(device)
-    for param in model.parameters():
-        param.requires_grad = False
-
-
-    model.input_adpter = torch.nn.Linear(38, 27).to(device)
-    model.output_adpter = torch.nn.Linear(27, 38).to(device)
-
-    window_size = config["window_size"]
-    #
-    # label_path = "./Data/SMD/label/" + filename
-    # train_path = "./Data/SMD/train/" + filename
-    # test_path = "./Data/SMD/test/" + filename
-    #
-    #
-    # # preprocess data
-    # label = pd.read_csv(label_path, header=None).to_numpy()[window_size - 1:]
-    # data_test = pd.read_csv(test_path, header=None).to_numpy()
-    # data_train = pd.read_csv(train_path, header=None).to_numpy()
 
     #loar start
 
@@ -623,139 +825,176 @@ def trainAdapterLora(config,model,filename,data_train,data_test,label):
 
 
 
+    train_loader = processData(data_train, config)
+    test_dataloader = processData(data_test, config)
 
 
-    assign_lora = partial(LinearWithLoRA, rank=lora_r, alpha=lora_alpha,device = device)
 
-    # Apply LoRA to the layers
-    for layer in model.transformer.encoder.layers:
-        if lora_query:
-            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
-        if lora_key:
-            # Assuming the model has key projection
-            pass
-        if lora_value:
-            # Assuming the model has value projection
-            pass
-        if lora_projection:
-            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
-        if lora_mlp:
-            layer.linear1 = assign_lora(layer.linear1)
-            layer.linear2 = assign_lora(layer.linear2)
+    result = {}
+    result["f1"] = []
+    result["auc_roc"] = []
+    result["auc_pr"] = []
+    result["training_time"] = []
+    result["testing_time"] = []
 
-    for layer in model.transformer.decoder.layers:
-        if lora_query:
-            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
-        if lora_key:
-            # Assuming the model has key projection
-            pass
-        if lora_value:
-            # Assuming the model has value projection
-            pass
-        if lora_projection:
-            layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
-        if lora_mlp:
-            layer.linear1 = assign_lora(layer.linear1)
-            layer.linear2 = assign_lora(layer.linear2)
 
-    if lora_head:
-        model.fc = assign_lora(model.fc)
+    for epoch in range(1,config["epoch"]+1,1):
+        device = torch.device("cpu")
+        l = torch.nn.MSELoss(reduction='sum')
 
-    # 获取和打印模型中所有可训练参数的数量
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'train lora - total number of trainable parameters: {num_params}')
+        path = "./CheckPoints/LoRA-exp/" + filename.split(".")[0]
 
-    device = config["device"]
-    model = model.to(device)
+        if first_half:
+            path = path + "/epoch-" + str(epoch) + "-first_part.pth"
+        else:
+            path = path + "/epoch-" + str(epoch) + "-last_part.pth"
 
-    #lora end
+        model = getModel(config)
+        model.load_state_dict(torch.load(path))
 
-    train_loader = model.processData(data_train)
-    model.train()
-    lr = model.config["learning_rate"]
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+        # print(model)
+        for param in model.parameters():
+            param.requires_grad = False
 
-    # 设置余弦学习率衰减，这里的T_max是衰减周期
-    scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
+        assign_lora = partial(LinearWithLoRA, rank=lora_r, alpha=lora_alpha, device=device)
 
-    l = torch.nn.MSELoss(reduction='sum')
+        # Apply LoRA to the layers
+        for layer in model.transformer.encoder.layers:
+            if lora_query:
+                layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+            if lora_key:
+                # Assuming the model has key projection
+                pass
+            if lora_value:
+                # Assuming the model has value projection
+                pass
+            if lora_projection:
+                layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+            if lora_mlp:
+                layer.linear1 = assign_lora(layer.linear1)
+                layer.linear2 = assign_lora(layer.linear2)
 
-    epoch_loss = []
+        for layer in model.transformer.decoder.layers:
+            if lora_query:
+                layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+            if lora_key:
+                # Assuming the model has key projection
+                pass
+            if lora_value:
+                # Assuming the model has value projection
+                pass
+            if lora_projection:
+                layer.self_attn.out_proj = assign_lora(layer.self_attn.out_proj)
+            if lora_mlp:
+                layer.linear1 = assign_lora(layer.linear1)
+                layer.linear2 = assign_lora(layer.linear2)
 
-    for ep in range(config["epoch"]):
+        if lora_head:
+            model.fc = assign_lora(model.fc)
 
-        # l1s = []
-        running_loss = 0
-        for d in train_loader:
-            optimizer.zero_grad()
-            item = d[0].to(model.divice)
+        model.input_adpter = torch.nn.Linear(38, 19).to(device)
+        model.output_adpter = torch.nn.Linear(19, 38).to(device)
 
-            data_adpted = model.input_adpter(item).to(device)
-            output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
-            output = model.output_adpter(output)
+        device = config["device"]
+        model = model.to(device)
 
-            loss = l(output, item[:, -1, :].unsqueeze(dim=1))
+        model.train()
+        lr = model.config["learning_rate"]
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
-            # l1s.append(torch.mean(loss).item())
+        # 设置余弦学习率衰减，这里的T_max是衰减周期
+        scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-7)
+        epoch_loss = []
 
-            running_loss += loss.item()
+        running_start_time = time.time()
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        for ep in range(1,epoch+1,1):
 
-        scheduler.step()  # 在每个epoch后更新学习率
+            # l1s = []
+            running_loss = 0
+            for d in train_loader:
+                optimizer.zero_grad()
+                item = d[0].to(model.divice)
 
-        # 计算当前epoch的平均损失
-        epoch_loss.append(running_loss / len(train_loader))
+                data_adpted = model.input_adpter(item).to(device)
+                output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
+                output = model.output_adpter(output)
 
-        print(f'train epoch [{ep + 1}/{model.epoch}],\t loss = {epoch_loss[ep]}')
+                loss = l(output, item[:, -1, :].unsqueeze(dim=1))
 
-    test_dataloader = model.processData(data_test)
-    model.eval()
-    score = []
+                # l1s.append(torch.mean(loss).item())
 
-    l = torch.nn.MSELoss(reduction='none')
+                running_loss += loss.item()
 
-    with torch.no_grad():
-        for index, d in enumerate(test_dataloader):
-            item = d[0].to(model.divice)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-            data_adpted = model.input_adpter(item)
-            output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
+            scheduler.step()  # 在每个epoch后更新学习率
+            print(f'train epoch [{ep }/{epoch}],\t loss = {running_loss / len(train_loader)}')
 
-            output = model.output_adpter(output)
+        running_end_time = time.time()
 
-            loss = l(output[:, -1, :], item[:, -1, :])
+        running_duration = (running_end_time - running_start_time)/epoch
 
-            loss = loss.sum(dim=-1)
-            if len(loss.shape) == 0:
-                loss = loss.unsqueeze(dim=0)
+        model.eval()
+        score = []
 
-            score.append(loss.detach().cpu())
+        l = torch.nn.MSELoss(reduction='none')
 
-    score = torch.concatenate(score, dim=0).numpy()
+        testing_start_time = time.time()
 
-    score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+        with torch.no_grad():
+            for index, d in enumerate(test_dataloader):
+                item = d[0].to(device)
 
-    predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
-                                                         ground_truth_label=label, protocol="none")
-    print("f1-score:", f1)
-    print("threshold:", threshold)
+                data_adpted = model.input_adpter(item)
+                output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
 
-    plot_yaxis = []
-    plot_yaxis.append(score)
-    plot_yaxis.append(predict_labels)
-    plot_path = config["base_path"]+"/Plots/Lora-exp/"+config["identifier"]
-    # 判断文件夹是否存在
-    if not os.path.exists(plot_path):
-        # 如果文件夹不存在，则创建它
-        os.makedirs(plot_path)
-    plot_file_path = plot_path + "/" + filename.split(".")[0] + "-lora-" + str(config["epoch"])
-    plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
-                  save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
+                output = model.output_adpter(output)
 
-    return f1
+                loss = l(output[:, -1, :], item[:, -1, :])
+
+                loss = loss.sum(dim=-1)
+                if len(loss.shape) == 0:
+                    loss = loss.unsqueeze(dim=0)
+
+                score.append(loss.detach().cpu())
+
+            testing_end_time = time.time()
+
+        score = torch.concatenate(score, dim=0).numpy()
+
+        score = minMaxScaling(data=score, min_value=score.min(), max_value=score.max(), range_max=1, range_min=0)
+
+        predict_labels, f1, threshold = model.getBestPredict(anomaly_score=score, n_thresholds=100,
+                                                             ground_truth_label=label, protocol="none")
+        print("f1-score:", f1," threshold:",threshold)
+
+
+        plot_yaxis = []
+        plot_yaxis.append(score)
+        plot_yaxis.append(predict_labels)
+        plot_path = config["base_path"] + "/Plots/Lora-exp/" + config["identifier"]
+
+        # 判断文件夹是否存在
+        if not os.path.exists(plot_path):
+            # 如果文件夹不存在，则创建它
+            os.makedirs(plot_path)
+        plot_file_path = plot_path + "/" + filename.split(".")[0] + "-lora-" + str(epoch)
+        plotAllResult(x_axis=np.arange(len(predict_labels)), y_axises=plot_yaxis, title="",
+                      save_path=plot_file_path, segments=findSegment(label), threshold=threshold)
+
+        result["f1"].append(f1)
+        result["auc_roc"].append(aucRoc(score, label))
+        result["auc_pr"].append(aucPr(score, label))
+
+        result["training_time"].append(running_duration)
+        result["testing_time"].append(testing_end_time - testing_start_time)
+
+        del model
+
+    return result
 
 
 if __name__ == '__main__':
@@ -784,6 +1023,8 @@ if __name__ == '__main__':
 
     logpath = "./Logs/Lora-exp/"
 
+    # data_files = data_files[len(data_files)//2:]
+    # data_files = data_files
     for filename in data_files:
 
         gc.collect()
@@ -801,126 +1042,105 @@ if __name__ == '__main__':
         data_test = pd.read_csv(test_path, header=None).to_numpy()
         data_train = pd.read_csv(train_path, header=None).to_numpy()
 
-        full_f1_list = []
-        first_part_f1_list = []
-        last_part_f1_list = []
-        first_adapter_full_f1_list = []
-        first_adapter_frozen_f1_list = []
-        last_adapter_full_f1_list = []
-        last_adapter_frozen_f1_list = []
-        first_lora_f1_list = []
-        last_lora_f1_list = []
-
-        for epoch in range(1,20,1):
-            gc.collect()
-            config["identifier"] = "Lora-exp-"+filename.split(".")[0]
-            config["epoch"] = epoch
-
-            full_f1 = trainFull(config,filename,data_train,data_test,label)
-
-            first_part_f1,model = trainPart(config, filename,data_train,data_test,label,first_half=True)
-
-            path = "./CheckPoints/LoRA-exp/" + filename.split(".")[0]
-            # 判断文件夹是否存在
-            if not os.path.exists(path):
-                # 如果文件夹不存在，则创建它
-                os.makedirs(path)
-
-            first_path = path +  "/epoch-" + str(epoch) + "-first_part.pth"
-            torch.save(model.state_dict(), first_path)
-            del model
-
-            last_part_f1, model = trainPart(config, filename, data_train, data_test, label, first_half=False)
-
-            path = "./CheckPoints/LoRA-exp/" + filename.split(".")[0]
-            # 判断文件夹是否存在
-            if not os.path.exists(path):
-                # 如果文件夹不存在，则创建它
-                os.makedirs(path)
-
-            last_path = path + "/epoch-" + str(epoch) + "-last_part.pth"
-            torch.save(model.state_dict(), last_path)
-            del model
-
-            config["input_size"] = 19
-
-            model = getModel(config)
-            model.load_state_dict(torch.load(first_path))
-
-            first_adapter_full_f1 = trainAdapterFulltune(config,model,filename,data_train,data_test,label)
-
-            del model
-
-            model = getModel(config)
-            model.load_state_dict(torch.load(first_path))
-
-            first_adapter_frozen_f1 = trainAdapterFrozen(config,model,filename,data_train,data_test,label)
-
-            del model
-            model = getModel(config)
-            model.load_state_dict(torch.load(first_path))
-
-            first_lora_f1 = trainAdapterLora(config,model,filename,data_train,data_test,label)
-
-            del model
-
-            model = getModel(config)
-            model.load_state_dict(torch.load(last_path))
-
-            last_adapter_full_f1 = trainAdapterFulltune(config, model, filename, data_train, data_test, label)
-
-            del model
-
-            model = getModel(config)
-            model.load_state_dict(torch.load(last_path))
-
-            last_adapter_frozen_f1 = trainAdapterFrozen(config, model, filename, data_train, data_test, label)
-
-            del model
-
-            model = getModel(config)
-            model.load_state_dict(torch.load(last_path))
-
-            last_lora_f1 = trainAdapterLora(config, model, filename, data_train, data_test, label)
-
-            del model
+        full_result_list = []
+        first_part_result_list = []
+        last_part_result_list = []
+        first_adapter_full_result_list = []
+        first_adapter_frozen_result_list = []
+        last_adapter_full_result_list = []
+        last_adapter_frozen_result_list = []
+        first_lora_result_list = []
+        last_lora_result_list = []
 
 
-            full_f1_list.append(full_f1)
-            first_part_f1_list.append(first_part_f1)
-            first_adapter_full_f1_list.append(first_adapter_full_f1)
-            first_adapter_frozen_f1_list.append(first_adapter_frozen_f1)
-            last_part_f1_list.append(first_part_f1)
-            last_adapter_full_f1_list.append(first_adapter_full_f1)
-            last_adapter_frozen_f1_list.append(first_adapter_frozen_f1)
-            first_lora_f1_list.append(first_lora_f1)
-            last_lora_f1_list.append(last_lora_f1)
 
-            result["epoch-"+str(epoch)+"-full"] = full_f1
-            result["epoch-" + str(epoch) + "-first_part"] = first_part_f1
-            result["epoch-" + str(epoch) + "-first_adapter_full"] = first_adapter_full_f1
-            result["epoch-" + str(epoch) + "-first_adapter_frozen"] = first_adapter_frozen_f1
+        config["identifier"] = "Lora-exp-"+filename.split(".")[0]
+        config["epoch"] = 20
 
-            result["epoch-" + str(epoch) + "-last_part"] = last_part_f1
-            result["epoch-" + str(epoch) + "-last_adapter_full"] = last_adapter_full_f1
-            result["epoch-" + str(epoch) + "-last_adapter_frozen"] = last_adapter_frozen_f1
+        full_result = trainFull(config,filename,data_train,data_test,label)
 
-            result["epoch-" + str(epoch) + "-first_lora"] = first_lora_f1
-            result["epoch-" + str(epoch) + "-last_lora"] = last_lora_f1
+        first_part_result = trainPart(config, filename,data_train,data_test,label,first_half=True)
+
+
+        last_part_result= trainPart(config, filename, data_train, data_test, label, first_half=False)
+
+
+        config["input_size"] = 19
+
+
+        first_adapter_full_result = trainAdapterFulltune(config,True,filename,data_train,data_test,label)
+
+
+        first_adapter_frozen_result = trainAdapterFrozen(config,True,filename,data_train,data_test,label)
+
+
+        first_lora_result = trainAdapterLora(config,True,filename,data_train,data_test,label)
+
+
+        last_adapter_full_result = trainAdapterFulltune(config, False, filename, data_train, data_test, label)
+
+        last_adapter_frozen_result = trainAdapterFrozen(config, False, filename, data_train, data_test, label)
+
+
+        last_lora_result = trainAdapterLora(config, False, filename, data_train, data_test, label)
 
 
 
 
-        result["max_full_f1"] = np.array(full_f1_list).max()
-        result["max_first_part_f1"] = np.array(first_part_f1_list).max()
-        result["max_first_adapter_full_f1"] = np.array(first_adapter_full_f1_list).max()
-        result["max_first_adapter_frozen_f1"] = np.array(first_adapter_frozen_f1_list).max()
-        result["max_first_lora_f1"] = np.array(first_lora_f1_list).max()
+        result["result-full"] = full_result
+        result["result-first_part"] = first_part_result
+        result["result-first_adapter_full"] = first_adapter_full_result
+        result["result-first_adapter_frozen"] = first_adapter_frozen_result
 
-        result["max_last_part_f1"] = np.array(last_part_f1_list).max()
-        result["max_last_adapter_full_f1"] = np.array(last_adapter_full_f1_list).max()
-        result["max_last_adapter_frozen_f1"] = np.array(last_adapter_frozen_f1_list).max()
-        result["max_last_lora_f1"] = np.array(last_lora_f1_list).max()
+        result["result-last_part"] = last_part_result
+        result["result-last_adapter_full"] = last_adapter_full_result
+        result["result-last_adapter_frozen"] = last_adapter_frozen_result
+
+        result["result-first_lora"] = first_lora_result
+        result["result-last_lora"] = last_lora_result
+
+
+
+
+        result["max_f1_full"] = np.array(full_result["f1"]).max()
+        result["max_auc_roc_full"] = np.array(full_result["auc_roc"]).max()
+        result["max_auc_pr_full"] = np.array(full_result["auc_pr"]).max()
+
+
+        result["max_f1_first_part"] = np.array(first_part_result["f1"]).max()
+        result["max_f1_first_adapter_full"] = np.array(first_adapter_full_result["f1"]).max()
+        result["max_f1_first_adapter_frozen"] = np.array(first_adapter_frozen_result["f1"]).max()
+        result["max_f1_first_lora"] = np.array(first_lora_result["f1"]).max()
+
+        result["max_auc_roc_first_part"] = np.array(first_part_result["auc_roc"]).max()
+        result["max_auc_roc_first_adapter_full"] = np.array(first_adapter_full_result["auc_roc"]).max()
+        result["max_auc_roc_first_adapter_frozen"] = np.array(first_adapter_frozen_result["auc_roc"]).max()
+        result["max_auc_roc_first_lora"] = np.array(first_lora_result["auc_roc"]).max()
+
+        result["max_auc_pr_first_part"] = np.array(first_part_result["auc_pr"]).max()
+        result["max_auc_pr_first_adapter_full"] = np.array(first_adapter_full_result["auc_pr"]).max()
+        result["max_auc_pr_first_adapter_frozen"] = np.array(first_adapter_frozen_result["auc_pr"]).max()
+        result["max_auc_pr_first_lora"] = np.array(first_lora_result["auc_pr"]).max()
+
+
+
+
+        result["max_f1_last_part"] = np.array(last_part_result["f1"]).max()
+        result["max_f1_last_adapter_full"] = np.array(last_adapter_full_result["f1"]).max()
+        result["max_f1_last_adapter_frozen"] = np.array(last_adapter_frozen_result["f1"]).max()
+        result["max_f1_last_lora"] = np.array(last_lora_result["f1"]).max()
+
+        result["max_auc_roc_last_part"] = np.array(last_part_result["auc_roc"]).max()
+        result["max_auc_roc_last_adapter_full"] = np.array(last_adapter_full_result["auc_roc"]).max()
+        result["max_auc_roc_last_adapter_frozen"] = np.array(last_adapter_frozen_result["auc_roc"]).max()
+        result["max_auc_roc_last_lora"] = np.array(last_lora_result["auc_roc"]).max()
+
+        result["max_auc_pr_last_part"] = np.array(last_part_result["auc_pr"]).max()
+        result["max_auc_pr_last_adapter_full"] = np.array(last_adapter_full_result["auc_pr"]).max()
+        result["max_auc_pr_last_adapter_frozen"] = np.array(last_adapter_frozen_result["auc_pr"]).max()
+        result["max_auc_pr_last_lora"] = np.array(last_lora_result["auc_pr"]).max()
+
+
 
 
         wirteLog(logpath,filename.split(".")[0],result)
