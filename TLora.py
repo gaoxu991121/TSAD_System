@@ -9,8 +9,10 @@ from Models.Layers.LinearWithLoRA import LinearWithLoRA
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import TensorDataset, DataLoader
 
+
 from Models.Layers.RevIN import RevIN
 from Models.Layers.SAM import SAM
+
 from Preprocess.Normalization import minMaxScaling
 from Preprocess.Window import convertToSlidingWindow
 from Utils.DataUtil import readData, readJson
@@ -20,7 +22,9 @@ import os
 import random
 import argparse
 from Utils.EvalUtil import findSegment, aucRoc, aucPr
+
 from Utils.LogUtil import wirteLog, trace, appendLog
+
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
 
@@ -157,7 +161,9 @@ def trainFull(config, filename, train_data, test_data, val_data, label):
         os.makedirs("/CheckPoints/LoRA-exp/" + filename.split(".")[0])
 
     save_path = "/CheckPoints/LoRA-exp/" + filename.split(".")[0] + "/train-full.pt"
+
     early_stopping = EarlyStopping(patience=5, verbose=True, path=save_path)
+
 
     for ep in range(1, config["epoch"] + 1, 1):
         l = torch.nn.MSELoss(reduction='sum')
@@ -193,7 +199,9 @@ def trainFull(config, filename, train_data, test_data, val_data, label):
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
+
             for index, d in enumerate(val_dataloader):
+
                 item = d[0].to(device)
 
                 output = model(item, item[:, -1, :].unsqueeze(dim=1))
@@ -282,11 +290,11 @@ def trainPart(config, filename, train_data, test_data, val_data, label, first_ha
         train_data = train_data[:, :19]
         val_data = val_data[:, :19]
 
-
     else:
         test_data = test_data[:, 19:]
         train_data = train_data[:, 19:]
         val_data = val_data[:, 19:]
+
 
     config["input_size"] = test_data.shape[-1]
     # get data
@@ -332,6 +340,7 @@ def trainPart(config, filename, train_data, test_data, val_data, label, first_ha
 
     early_stopping = EarlyStopping(patience=5, verbose=True, path=save_path)
 
+
     for ep in range(1, config["epoch"] + 1, 1):
         l = torch.nn.MSELoss(reduction='sum')
         # l1s = []
@@ -371,7 +380,9 @@ def trainPart(config, filename, train_data, test_data, val_data, label, first_ha
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
+
             for index, d in enumerate(val_dataloader):
+
                 item = d[0].to(device)
 
                 output = model(item, item[:, -1, :].unsqueeze(dim=1))
@@ -589,7 +600,9 @@ def trainAdapterFulltune(config, first_half, filename, data_train, data_test, va
 
     val_dataloader = model.processData(val_data)
 
+
     early_stopping = EarlyStopping(patience=5, verbose=True, path=save_path)
+
 
     epoch = config["epoch"]
     for ep in range(1, epoch + 1, 1):
@@ -731,7 +744,9 @@ def trainAdapterFrozen(config, first_half, filename, data_train, data_test, data
 
     val_dataloader = model.processData(data_val)
 
+
     early_stopping = EarlyStopping(patience=5, verbose=True, path=save_path)
+
 
     for param in model.parameters():
         param.requires_grad = False
@@ -863,8 +878,8 @@ def trainAdapterFrozen(config, first_half, filename, data_train, data_test, data
     return result
 
 
-
 def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data_val, label):
+
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
     # loar start
@@ -880,13 +895,9 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
     lora_mlp = True
     lora_head = True
 
-    result = {}
-    result["f1"] = []
-    result["auc_roc"] = []
-    result["auc_pr"] = []
-    result["training_time"] = []
-    result["testing_time"] = []
 
+    train_loader = processData(data_train, config)
+    test_dataloader = processData(data_test, config)
 
 
 
@@ -943,7 +954,9 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
     model = getModel(config)
     model.load_state_dict(torch.load(path))
 
+
     early_stopping = EarlyStopping(patience=5, verbose=True, path=save_path)
+
 
     # print(model)
     for param in model.parameters():
@@ -985,9 +998,11 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
     if lora_head:
         model.fc = assign_lora(model.fc)
 
+
     model.input_adpter = torch.nn.Linear(input_size, 19).to(device)
     model.activation_func1 = torch.nn.Sigmoid().to(device)
     model.output_adpter = torch.nn.Linear(19, input_size).to(device)
+
 
     device = config["device"]
     model = model.to(device)
@@ -1015,12 +1030,14 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
             optimizer.zero_grad()
             item = d[0].to(model.divice)
 
+
             # if first_half:
             #     data_adpted = model.input_adpter(item[:,:,:19]).to(device)
             # else:
             #     data_adpted = model.input_adpter(item[:,:,19:]).to(device)
             data_adpted = model.input_adpter(item).to(device)
             # data_adpted = model.activation_func1(data_adpted)
+
 
             output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
             output = model.output_adpter(output)
@@ -1047,10 +1064,12 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
+
             for index, d in enumerate(val_dataloader):
                 item = d[0].to(device)
 
                 data_adpted = model.input_adpter(item).to(device)
+
 
                 output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
 
@@ -1075,6 +1094,7 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
                 item = d[0].to(device)
 
                 data_adpted = model.input_adpter(item).to(device)
+
 
                 output = model(data_adpted, data_adpted[:, -1, :].unsqueeze(dim=1))
 
@@ -1123,6 +1143,7 @@ def trainAdapterLoraV7(config, first_half, filename, data_train, data_test, data
             break
 
     return result
+
 
 
 def trainAdapterLoraV6(config, first_half, filename, data_train, data_test, data_val, label):
@@ -2565,6 +2586,7 @@ def trainAdapterLoraV1(config, first_half, filename, data_train, data_test, data
 
 
 def trainAdapterLora(config, first_half, filename, data_train, data_test, label):
+
     from torch.optim.lr_scheduler import CosineAnnealingLR
 
     # loar start
@@ -2769,7 +2791,9 @@ if __name__ == '__main__':
     dataset_path = "./Data/SMD/test"
     data_files = os.listdir(dataset_path)
 
+
     logpath = "./Logs/Lora-exp-val/"
+
 
     # data_files = data_files[len(data_files)//2:]
     # data_files = data_files
@@ -2805,6 +2829,7 @@ if __name__ == '__main__':
 
         config["identifier"] = "Lora-exp-" + filename.split(".")[0]
         config["epoch"] = 20
+
 
         # full_result = trainFull(config, filename, data_train, data_test, data_val, label)
         #
