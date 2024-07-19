@@ -38,3 +38,26 @@ def trace(data,logname = "trace.json"):
     with open(path, 'a') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+
+def appendLog(path, title, data):
+    # 定义目标JSON文件路径
+    file_path = os.path.join(path, title + ".json")
+
+
+    # 判断文件是否存在
+    if os.path.exists(file_path):
+        # 如果文件存在，读取现有内容并追加新数据
+        with open(file_path, 'r+') as file:
+            old_data = json.load(file)
+            # 追加新数据到现有数据
+            old_data.update(data)
+            file.seek(0)
+            file.truncate()
+            file.write(json.dumps(old_data))
+    else:
+        # 如果文件不存在，使用新数据创建
+
+        # 保存数据到JSON文件
+        with open(file_path, 'a') as file:
+            json.dump(data, file, indent=4, ensure_ascii=False)
+

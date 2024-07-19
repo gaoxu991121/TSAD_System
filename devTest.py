@@ -368,12 +368,13 @@ if __name__ == '__main__':
 
 
     #get model
-    # model = RevIN(4,affine=False)
-    #
-    # data = torch.tensor([[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]], [[1, 2.5, 3,9.1], [7, 8.3, 7,8.5], [4.0, 6.5, 6,7.4]], [[1.4, 2.2, 3,4], [8.7, 9.8, 10,6], [4.2, 6.3, 6,7]],[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]],[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]]]).numpy()
-    # data = data / 10
-    # print(data)
-    # print(data.shape)
+    model = RevIN(4,affine=False)
+
+    data = torch.tensor([[[1, 2, 3,4], [4, 7, 6,7], [4.0, 6.5, 6,7]], [[1, 2.5, 3,9.1], [7, 8.3, 7,8.5], [4.0, 6.5, 6,7.4]], [[1.4, 2.2, 3,4], [8.7, 9.8, 10,6], [4.2, 6.3, 6,7]],[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]],[[1.5, 2.2, 3.4,5.7], [4.5, 6.8, 6.3,7.2], [4.0, 6.5, 6,7]]])
+    print(data)
+    print(data.shape)
+    res = model(data,"norm")
+    print(res)
     # #
     # # model = MultiHeadAttention(4,2)
     # # print(model(data)[0].shape)
@@ -384,7 +385,7 @@ if __name__ == '__main__':
     # print(countSame(data[0],data))
     # print(getMatrixKey(res))
     # print(unique(res))
-    plotFig3()
+    # plotFig3()
     # import numpy as np
     #
     # # 示例列表，每个元素是一个 [window, channel] 的 NumPy 数组
