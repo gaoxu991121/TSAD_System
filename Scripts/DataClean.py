@@ -274,6 +274,64 @@ def process_nasa_p2():
     label = pd.Series(label.squeeze())
     label.to_csv(msl_directory_path,header=False,index=False)
 
+def add_row_to_single_column_csv_files(folder_path):
+    # 遍历文件夹中的所有文件
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.csv'):
+            file_path = os.path.join(folder_path, filename)
+
+            # 读取 CSV 文件
+            df = pd.read_csv(file_path)
+
+            # 检查是否只有一列数据
+            if df.shape[1] == 1:
+                # 创建一个新的 DataFrame，包含一行 0
+                new_row = pd.DataFrame([0])
+
+                # 将新行和原数据连接
+                df = pd.concat([new_row, df], ignore_index=True)
+
+                # 保存回 CSV 文件
+                df.to_csv(file_path, index=False, header=False)  # header=False 以避免写入列名
+
+
+def cleanNASA():
+    train_path = "../Data/SMAP/train"
+    test_path = "../Data/SMAP/test"
+    label_path = "../Data/SMAP/label"
+
+    file_list = os.listdir(test_path)
+
+    for file in file_list:
+        train_data = pd.read_csv(train_path + "/" + file,header=None)
+        test_data = pd.read_csv(test_path + "/" + file, header=None)
+        label = pd.read_csv(label_path + "/" + file,header=None,skiprows=0)
+
+        print("file:",file," train data shape:",train_data.shape," test data shape:",test_data.shape," label shape:",label.shape)
+        # label.to_csv(label_path + "/" + file,header=False,index=False)
+
+def clean_csv_files(folder_path):
+    # 遍历文件夹中的所有文件
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.csv'):
+            file_path = os.path.join(folder_path, filename)
+
+            # 读取文件内容
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+
+            # 删除所有的逗号并插入新行
+            new_lines = ['0.0\n']  # 新行
+            for line in lines:
+                cleaned_line = line.replace(',', '')  # 删除逗号
+                new_lines.append(cleaned_line)
+
+            # 写回文件
+            with open(file_path, 'w') as file:
+                file.writelines(new_lines)
+
+
+
 if __name__ == '__main__':
 
     pass
@@ -286,3 +344,10 @@ if __name__ == '__main__':
     # print("data_train shape:",data_train.shape)
     # data_window = np.load(r"E:\TimeSeriesAnomalyDection\TSAD_System\Data\PMS\window\train\PMS.npy")
     # print("data_window shape:",data_window.shape)
+    # 使用示例
+    # 使用示例
+    # folder_path = "../Data/SMAP/label/"  # 替换为你的文件夹路径
+    # clean_csv_files(folder_path)
+    # folder_path = "../Data/SMAP/label/"  # 替换为你的文件夹路径
+    # add_row_to_single_column_csv_files(folder_path)
+    cleanNASA()

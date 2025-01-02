@@ -8,10 +8,13 @@ from datetime import  datetime
 import os
 import numpy as np
 import argparse
-from Utils.EvalUtil import findSegment
+from Utils.EvalUtil import findSegment, countResult
 from Utils.LogUtil import trace, wirteLog
 from Utils.PlotUtil import plotAllResult
 from importlib import import_module
+
+from Utils.ProtocolUtil import pa, apa, getAlpha, getBeta
+
 
 # def getConfigs():
 #     config = [
@@ -465,9 +468,9 @@ from importlib import import_module
 
 def getConfigs():
     config = {
-            "epoch": 3,
+            "epoch": 1,
             "batch_size": 128,
-            "window_size": 100,
+            "window_size": 60,
             "identifier": "model-evaluation",
             "hidden_size": 64,
             "latent_size": 32,
@@ -531,7 +534,7 @@ def count_parameters(model):
 
 def evalOneDataset(dataset_name):
     config = getConfigs()
-    model_list = ["BeatGAN"]
+    model_list = ["PCAAD","IForestAD","OmniAnomaly"]
     base_path = os.path.dirname(os.path.abspath(__file__))
     #get data
 
@@ -574,6 +577,20 @@ def evalOneDataset(dataset_name):
                                                                       ground_truth_label=label,
                                                                       protocol="pa")
 
+
+        best_f1,auc_pr = model.getBestAucPr(anomaly_score=anomaly_scores, n_thresholds=25,
+                             ground_truth_label=label,
+                             protocol="")
+
+        pa_best_f1, pa_auc_pr = model.getBestAucPr(anomaly_score=anomaly_scores, n_thresholds=25,
+                                             ground_truth_label=label,
+                                             protocol="pa")
+
+        apa_best_f1, apa_auc_pr = model.getBestAucPr(anomaly_score=anomaly_scores, n_thresholds=25,
+                                             ground_truth_label=label,
+                                             protocol="apa")
+
+
         print("finish evaluating method:", method)
         # visualization
         plot_yaxis = []
@@ -607,13 +624,162 @@ def evalOneDataset(dataset_name):
         config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
         wirteLog(config["base_path"] + "/Logs/" +dataset_name,method + "-detail",config)
 
+        metrics = {}
+        metrics["ori_f1"] = best_f1
+        metrics["pa_f1"] = pa_best_f1
+        metrics["apa_f1"] = apa_best_f1
+
+        metrics["ori_auc_pr"] = auc_pr
+        metrics["pa_auc_pr"] = pa_auc_pr
+        metrics["apa_auc_pr"] = apa_auc_pr
+
+
+        wirteLog(config["base_path"] + "/Logs/" + dataset_name, method + "-metric", metrics)
+
 
 
     print("finish training model. start to test model.")
 
 
+def evaluateAll():
+    datasets = [("WADI", True), ("UCR", False), ("SMD", False), ("SMAP", False), ("SKAB", True),
+                ("PMS", True), ("MSL", False), ("DMDS", True)]
+
+    # datasets = [("SWAT", False),("DMDS", False)]
+
+
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+    method_list = []
+    print("start evaluating all")
+    for method in method_list:
+
+
+        for dataset_name, isonly in datasets:
+            print("dataset:", dataset_name)
+            data_train_path = base_path + "/Data/" + dataset_name + "/train"
+            data_files = os.listdir(data_train_path)
+            # 初始化总计数器
+            total_tp, total_fp, total_tn, total_fn = 0, 0, 0, 0
+            total_pa_tp, total_pa_fp, total_pa_tn, total_pa_fn = 0, 0, 0, 0
+            total_apa_tp, total_apa_fp, total_apa_tn, total_apa_fn = 0, 0, 0, 0
+
+            thresholds = np.linspace(0, 1, num=25)
+
+            for file in data_files:
+                print("file name:", file)
+                anomaly_score,label = getModelAnomalyScore(dataset_name=dataset_name, filename=file.split(".")[0],method = method)
+
+                file_metrics = []
+
+                # 遍历每个阈值
+                for threshold in thresholds:
+                    # 调用 getBaseMetric 函数获取当前文件、当前阈值下的各指标
+                    tp, tn, fp, fn = getBaseMetric(anomaly_score,threshold,label, protocol = "")
+                    pa_tp, pa_tn, pa_fp, pa_fn = getBaseMetric(anomaly_score, threshold, label, protocol="pa")
+                    apa_tp, apa_tn, apa_fp, apa_fn = getBaseMetric(anomaly_score, threshold, label, protocol="apa")
+
+
+                    # 将当前阈值下的各指标和 F1 值存储到列表中
+                    file_metrics.append({
+                        'threshold': threshold,
+                        'tp': tp,
+                        'tn': tn,
+                        'fp': fp,
+                        'fn': fn,
+                    })
+
+                # 将当前文件的各阈值下的指标存储到总列表中
+                threshold_metrics.append(file_metrics)
+
+                tp, fp, tn, fn,pa_tp, pa_fp, pa_tn, pa_fn,apa_tp, apa_fp, apa_tn, apa_fn = evalOneDatasetFile(dataset_name=dataset_name, filename=file.split(".")[0],method = method)
+                # 累加当前文件的统计指标到总计数器中
+                total_tp += tp
+                total_fp += fp
+                total_tn += tn
+                total_fn += fn
+
+                total_pa_tp += pa_tp
+                total_pa_fp += pa_fp
+                total_pa_tn += pa_tn
+                total_pa_fn += pa_fn
+
+                total_apa_tp += apa_tp
+                total_apa_fp += apa_fp
+                total_apa_tn += apa_tn
+                total_apa_fn += apa_fn
+
+
+
+
+
+
+    print("finish evaluating all")
+
+
+def getBaseMetric(anomaly_score,threshold, ground_truth_label=[], protocol="apa"):
+    # 平均划分出n_thresholds个阈值
+    predict_label = np.where(anomaly_score > threshold, 1, 0)
+
+    if protocol == "pa":
+        anomaly_segments = findSegment(labels=ground_truth_label)
+        predict_label = pa(predict_label, anomaly_segments)
+
+        (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+    elif protocol == "apa":
+
+        anomaly_segments = findSegment(labels=ground_truth_label)
+        (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+        predict_label = apa(predict_label, anomaly_segments, alarm_coefficient=getAlpha(fp,tn), beita=getBeta(segments = anomaly_segments ,anomalyScore = anomaly_score ,miu  = anomaly_score.mean(),sigma = anomaly_score.std()))
+
+        (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+
+    else:
+        (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+
+    return (tp, fp, tn, fn)
+
+def getModelAnomalyScore(dataset_name, filename,method):
+    config = getConfigs()
+
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    #get data
+
+
+    data_train,data_test,label = readData(dataset_path = base_path + "/Data/"+dataset_name ,filename = filename,file_type = "csv")
+
+    input_dim = data_train.shape[-1]
+
+    config["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    config["base_path"] = base_path
+    config["input_size"] = input_dim
+
+
+    config["model_name"] = method
+
+    print("training method:",method)
+
+    model = getModel(config)
+
+    config["model_param_num"] = count_parameters(model)
+    config["identifier"] = dataset_name+"-"+method
+    config["train_start_time"] = time.time()
+    # train model
+    model.fit(train_data = data_train,write_log=True)
+    config["train_end_time"] = time.time()
+
+    print("finish training method:",method," cost time:",config["train_end_time"] - config["train_start_time"])
+
+    anomaly_scores = model.test(data_test)
+
+    return anomaly_scores,label
+
+
+
 def evaluateAllDaset():
-    datasets = ["PMS"]
+    datasets = ["SWAT"]
     print("start evaluating all")
     for dataset_name in datasets:
         evalOneDataset(dataset_name)

@@ -1,3 +1,4 @@
+import math
 import os
 
 import torch
@@ -129,7 +130,7 @@ class BaseModel(nn.Module):
         batch_size = self.config["batch_size"]
 
         if len(data.shape) < 3:
-            data = convertToSlidingWindow(data=data, window_size=window_size)
+            data = convertToWindow(data=data, window_size=window_size)
 
         if shuffle:
             data = self.shuffle(data)
@@ -216,3 +217,155 @@ class BaseModel(nn.Module):
 
 
         return best_predict_label,f1_best,best_threshold
+
+    def getBestAucPr(self,anomaly_score,n_thresholds = 25, ground_truth_label=[], protocol="apa"):
+
+        # 平均划分出n_thresholds个阈值
+        thresholds = np.linspace(np.min(anomaly_score), np.max(anomaly_score), num=n_thresholds)
+        thresholds = thresholds[1:]
+        # 根据阈值标记数组
+        marked_arr = np.where(anomaly_score > thresholds[:, np.newaxis], 1, 0)
+
+
+        precision_list = []
+        recall_list = []
+        f1_list = []
+
+        if protocol == "pa":
+            for idx,predict_label in enumerate(marked_arr):
+
+
+                anomaly_segments = findSegment(labels=ground_truth_label)
+                predict_label = pa(predict_label, anomaly_segments)
+
+
+                (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+                if tp + fp == 0:
+                    precision = 0.0
+                else:
+                    precision = tp / (tp + fp)
+
+                if tp + fn == 0:
+                    recall = 0
+                else:
+                    recall = tp / (tp + fn)
+
+                if fp + tn == 0:
+                    fpr = 0
+                else:
+                    fpr = fp / (fp + tn)
+
+                if 2 * (tp + fn + fp) != 0:
+                    f1_list.append((2 * tp) / (2 * (tp + fn + fp)))
+                else:
+                    f1_list.append(0)
+
+                if precision > 0 and recall > 0 :
+
+                    precision_list.append(precision)
+                    recall_list.append(recall)
+
+        elif protocol == "apa":
+
+            for idx, predict_label in enumerate(marked_arr):
+
+                anomaly_segments = findSegment(labels=ground_truth_label)
+                predict_label = apa(predict_label, anomaly_segments, alarm_coefficient=1, beita=4)
+
+                (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+                if tp + fp == 0:
+                    precision = 0.0
+                else:
+                    precision = tp / (tp + fp)
+
+                if tp + fn == 0:
+                    recall = 0
+                else:
+                    recall = tp / (tp + fn)
+
+                if fp + tn == 0:
+                    fpr = 0
+                else:
+                    fpr = fp / (fp + tn)
+
+                if 2 * (tp + fn + fp) != 0:
+                    f1_list.append((2 * tp) / (2 * (tp + fn + fp)))
+                else:
+                    f1_list.append(0)
+
+                if precision > 0 and recall > 0:
+                    precision_list.append(precision)
+                    recall_list.append(recall)
+
+        else:
+            for idx, predict_label in enumerate(marked_arr):
+
+                (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+                if tp + fp == 0:
+                    precision = 0.0
+                else:
+                    precision = tp / (tp + fp)
+
+                if tp + fn == 0:
+                    recall = 0
+                else:
+                    recall = tp / (tp + fn)
+
+                if fp + tn == 0:
+                    fpr = 0
+                else:
+                    fpr = fp / (fp + tn)
+
+                if 2 * (tp + fn + fp) != 0:
+                    f1_list.append((2 * tp) / (2 * (tp + fn + fp)))
+                else:
+                    f1_list.append(0)
+
+                if precision > 0 and recall > 0:
+                    precision_list.append(precision)
+                    recall_list.append(recall)
+
+        f1_max = np.array(f1_list).max()
+        auc_pr = self.calculate_auc(recall_list, precision_list)
+
+        return f1_max,auc_pr
+
+    def getBaseMetric(self,anomaly_score,threshold, ground_truth_label=[], protocol="apa"):
+        # 平均划分出n_thresholds个阈值
+        predict_label = np.where(anomaly_score > threshold, 1, 0)
+
+        if protocol == "pa":
+            anomaly_segments = findSegment(labels=ground_truth_label)
+            predict_label = pa(predict_label, anomaly_segments)
+
+            (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+        elif protocol == "apa":
+
+            anomaly_segments = findSegment(labels=ground_truth_label)
+            predict_label = apa(predict_label, anomaly_segments, alarm_coefficient=1, beita=4)
+
+            (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+
+        else:
+            (tp, fp, tn, fn) = countResult(predict_labels=predict_label, ground_truth=ground_truth_label)
+
+
+        return (tp, fp, tn, fn)
+
+
+
+
+
+    def calculate_auc(x_axis: list, y_axis: list) -> float:
+
+        total = 0
+        for index in range(1, len(x_axis)):
+            delta_recall = x_axis[index] - x_axis[index - 1]
+            delta_precision = y_axis[index] + y_axis[index - 1]
+            total += math.fabs(0.5 * delta_recall * delta_precision)
+
+        return total

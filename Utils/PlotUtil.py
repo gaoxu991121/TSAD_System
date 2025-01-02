@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import matplotlib
 from mpl_toolkits import axisartist
-matplotlib.use('Agg')
+
 
 def colorTransform(r,g,b,a:float = 1.0):
     return (r/255,g/255,b/255,a)
@@ -66,6 +66,8 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
 
         y_ticklabels = ['0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0']
 
+
+
         if isScore:
             ax.yaxis.set_ticks_position('left')
             ax.set_yticks([0, 1])
@@ -74,7 +76,7 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
         else:
             ax.set_yticks([0, 1])
             ax.set_ylim(0, 1)
-            ax.set_yticklabels(["0", "1"])
+            ax.set_yticklabels(y_ticklabels)
     # 添加图例和标题
     # plt.legend(loc='upper right')
     # plt.title(title)
@@ -82,7 +84,7 @@ def plotAllResult(x_axis,y_axises,title = "",labels = [],save_path = "",threshol
     plt.subplots_adjust(left=0.15, right=0.9, bottom=0.1, top=0.9, wspace=0.2, hspace=0.3)
     if save_path != "":
         plt.savefig(save_path)
-    plt.close()
+        plt.close()
     # 显示图表
-    # plt.show()
+    plt.show()
 

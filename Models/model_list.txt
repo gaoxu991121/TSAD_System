@@ -1,0 +1,13 @@
+1. TranAD  《 Tuli, S., Casale, G., & Jennings, N. R. (2022). Tranad: Deep transformer networks for anomaly detection in multivariate time series data.  》
+2. Attention  《Vaswani, A. (2017). Attention is all you need. Advances in Neural Information Processing Systems.》
+3. Transformer 《Vaswani, A. (2017). Attention is all you need. Advances in Neural Information Processing Systems.》
+4. ChannelAttention
+5. TCNAE   《An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling》
+6. LSTM  《Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding》 包含若干改造版本
+7. LSTMAE   《LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection》 包含若干改造版本
+8. LSTMVAE 《A Multimodal Anomaly Detector for Robot-Assisted Feeding Using an LSTM-Based Variational Autoencoder》
+9. PCAAD
+10. IforestAD
+11. UAE
+12. OmmiAnomaly 《Anomaly Detection for Multivariate Time Series through Modeling Temporal Dependence of Stochastic Variables》
+13. DAGMM  《 Deep autoencoding gaussian mixture model for unsupervised anomaly detection》

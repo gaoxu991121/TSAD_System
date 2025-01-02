@@ -4,7 +4,7 @@ import math
 
 
 def apa(predict_labels: np.ndarray = np.array([]),
-                           anomaly_segments: list = [], alarm_coefficient: float = 0.5,beita :float = 3.0,adjust_end = True) -> np.ndarray:
+                           anomaly_segments: list = [], alarm_coefficient: float = 0.5,beita :float = 4.0,adjust_end = True) -> np.ndarray:
 
     modified_labels = np.copy(predict_labels).astype(float)
 
@@ -140,4 +140,33 @@ def spa(predict_labels: np.ndarray = np.array([]),ground_labels: np.ndarray = np
 
     return modified_labels
 
+def getAlpha(FP,TN):
+    print("getAlpha FP:",FP)
+    print("getAlpha TN:",TN)
+    return 1 - (FP/(FP + TN))
 
+def getBeta(segments ,anomalyScore ,miu ,sigma):
+    print("getBeta miu:",miu)
+    print("getBeta sigma:", sigma)
+    segments_length = 0
+    for seg in segments:
+        segments_length += len(seg)
+    betaMax = math.ceil(segments_length/math.log(segments_length))
+    print("getBeta betaMax:", betaMax)
+    for i in range(1,betaMax+1):
+        print("getBeta beta:",i)
+        mean_s = 0
+        mean_e = 0
+        for seg in segments:
+            if seg[0] - math.ceil(i * math.log(segments_length) + 1  ) >= 0 and math.ceil(i * math.log(segments_length) + 1) > 0 :
+                mean_s += anomalyScore[max(seg[0] - math.ceil(i * math.log(segments_length) + 1),0):seg[0]].mean()
+
+            if seg[-1] + math.ceil(i * math.log(segments_length) + 1 ) <= anomalyScore.shape[0]-1 and math.ceil(i * math.log(segments_length) + 1) > 0 :
+                mean_e += anomalyScore[seg[-1]:min(seg[-1] + math.ceil(i * math.log(segments_length) + 1),anomalyScore.shape[0]-1)].mean()
+        print("getBeta mean_s:",mean_s)
+        print("getBeta mean_e:",  mean_e)
+        print("getBeta miu + 0 * sigma:",miu + 0 * sigma)
+        if max( mean_s,mean_e ) < miu :
+            return i
+
+    return betaMax
